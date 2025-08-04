@@ -5,7 +5,7 @@ import { NewsItem, NewsOrganization, ScrapingResult } from '../types/news';
 import { generateId, formatDate, isValidUrl } from './helpers';
 
 export class NewsScraper {
-  private browser: Browser | null = null;
+  private browser: Browser | null = null;;
 
   async initialize(): Promise<void> {
     try {
@@ -41,7 +41,7 @@ export class NewsScraper {
     }
   }
 
-  async scrapeNews(organization: NewsOrganization): Promise<ScrapingResult> {
+    async scrapeNews(organization: NewsOrganization): Promise<ScrapingResult> {
     try {
       console.log(`スクレイピング開始: ${organization.displayName}`);
       
