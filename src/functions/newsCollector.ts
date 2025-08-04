@@ -1,5 +1,5 @@
 import { NewsScraper } from '../utils/scraper';
-import { NewsStorage } from '../utils/storage';
+import { AzureNewsStorage } from '../utils/azure-storage';
 import { ORGANIZATIONS } from '../config/organizations';
 import { delay } from '../utils/helpers';
 
@@ -27,7 +27,7 @@ export async function newsCollector(context: Context, myTimer: Timer): Promise<v
   context.log('Node.js バージョン:', process.version);
   
   const scraper = new NewsScraper();
-  const storage = new NewsStorage();
+  const storage = new AzureNewsStorage();
   
   try {
     context.log('Step 1: スクレイパーを初期化中...');

@@ -1,5 +1,5 @@
 // テスト用ニュースデータ追加機能
-import { NewsStorage } from '../utils/storage';
+import { AzureNewsStorage } from '../utils/azure-storage';
 import { NewsItem } from '../types/news';
 
 // テスト用のニュースデータ
@@ -62,7 +62,7 @@ export async function addTestData(context: Context, req: any): Promise<void> {
   context.log('テストデータ追加API呼び出し');
   
   try {
-    const storage = new NewsStorage();
+    const storage = new AzureNewsStorage();
     
     // テストデータを追加
     await storage.saveNews(TEST_NEWS_DATA);

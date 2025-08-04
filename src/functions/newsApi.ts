@@ -1,12 +1,12 @@
 import { HttpRequest, HttpResponseInit, InvocationContext } from '@azure/functions';
-import { NewsStorage } from '../utils/storage';
+import { AzureNewsStorage } from '../utils/azure-storage';
 import { ORGANIZATIONS } from '../config/organizations';
 
 export async function getNews(context: any, req: any): Promise<void> {
   context.log('ニュース取得API呼び出し');
   
   try {
-    const storage = new NewsStorage();
+    const storage = new AzureNewsStorage();
     const url = new URL(req.url);
     
     // クエリパラメータの取得
@@ -105,7 +105,7 @@ export async function getStatistics(context: any, req: any): Promise<void> {
   context.log('統計情報API呼び出し');
   
   try {
-    const storage = new NewsStorage();
+    const storage = new AzureNewsStorage();
     const stats = await storage.getStatistics();
     
     context.res = {

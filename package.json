@@ -17,6 +17,7 @@
     "postinstall": "echo 'Installing Puppeteer Chrome...' && npx puppeteer browsers install chrome || echo 'Chrome installation completed with warnings'"
   },
   "dependencies": {
+    "@azure/data-tables": "^13.3.1",
     "@azure/functions": "^4.5.0",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0-rc.12",
@@ -24,8 +25,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.5.4",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "typescript": "^5.5.4"
   },
   "engines": {
     "node": ">=18.0.0"
