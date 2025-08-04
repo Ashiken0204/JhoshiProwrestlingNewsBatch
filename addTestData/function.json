@@ -1,0 +1,21 @@
+{
+  "scriptFile": "../dist/src/functions/addTestData.js",
+  "bindings": [
+    {
+      "authLevel": "anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": [
+        "post"
+      ],
+      "route": "test-data"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    }
+  ],
+  "entryPoint": "addTestData"
+}
