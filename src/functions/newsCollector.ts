@@ -1,10 +1,22 @@
-import { app, InvocationContext, Timer } from '@azure/functions';
 import { NewsScraper } from '../utils/scraper';
 import { NewsStorage } from '../utils/storage';
 import { ORGANIZATIONS } from '../config/organizations';
 import { delay } from '../utils/helpers';
 
-export async function newsCollector(myTimer: Timer, context: InvocationContext): Promise<void> {
+// Azure Functions 従来モデル用の型定義
+interface Context {
+  log: (msg: string, ...args: any[]) => void;
+  error: (msg: string, ...args: any[]) => void;
+  done: (err?: Error, result?: any) => void;
+}
+
+interface Timer {
+  isPastDue: boolean;
+  schedule: any;
+  scheduleStatus: any;
+}
+
+export async function newsCollector(context: Context, myTimer: Timer): Promise<void> {
   context.log('ニュース収集バッチを開始します');
   
   const scraper = new NewsScraper();
