@@ -158,6 +158,7 @@ export class AzureNewsStorage {
 
   async clearAllData(): Promise<void> {
     try {
+      await this.initialize();
       console.log('Clearing all data from Azure Table Storage...');
       
       // すべてのエンティティを取得
@@ -166,21 +167,40 @@ export class AzureNewsStorage {
       
       for await (const entity of entities) {
         entitiesToDelete.push({
-          partitionKey: entity.partitionKey,
-          rowKey: entity.rowKey
+          partitionKey: entity.partitionKey as string,
+          rowKey: entity.rowKey as string
         });
       }
       
-      // 各エンティティを削除
+      console.log(`Found ${entitiesToDelete.length} entities to delete`);
+      
+      // 各エンティティを削除（バッチ処理）
+      let deletedCount = 0;
       for (const entity of entitiesToDelete) {
         try {
           await this.tableClient.deleteEntity(entity.partitionKey, entity.rowKey);
-        } catch (error) {
-          console.warn(`Failed to delete entity ${entity.partitionKey}/${entity.rowKey}:`, error);
+          deletedCount++;
+          console.log(`Deleted entity ${entity.partitionKey}/${entity.rowKey}`);
+        } catch (error: any) {
+          if (error.statusCode === 404) {
+            console.log(`Entity ${entity.partitionKey}/${entity.rowKey} already deleted`);
+            deletedCount++;
+          } else {
+            console.error(`Failed to delete entity ${entity.partitionKey}/${entity.rowKey}:`, error);
+          }
         }
       }
       
-      console.log(`Cleared ${entitiesToDelete.length} entities from table`);
+      console.log(`Successfully cleared ${deletedCount}/${entitiesToDelete.length} entities from table`);
+      
+      // 確認のため残りのエンティティ数をチェック
+      const remainingEntities = this.tableClient.listEntities();
+      let remainingCount = 0;
+      for await (const entity of remainingEntities) {
+        remainingCount++;
+      }
+      console.log(`Remaining entities after clear: ${remainingCount}`);
+      
     } catch (error) {
       console.error('Error clearing data from Azure Table Storage:', error);
       throw error;
