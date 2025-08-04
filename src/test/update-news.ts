@@ -5,8 +5,15 @@ async function updateNews() {
   console.log('🔄 ニュースデータベースを最新情報で更新中...');
   
   const mockContext = {
-    log: (message: any, ...args: any[]) => console.log(message, ...args),
-    error: (message: any, ...args: any[]) => console.error(message, ...args),
+    log: Object.assign(
+      (message: any, ...args: any[]) => console.log(message, ...args),
+      {
+        error: (message: any, ...args: any[]) => console.error('[ERROR]', message, ...args),
+        warn: (message: any, ...args: any[]) => console.warn('[WARN]', message, ...args),
+        info: (message: any, ...args: any[]) => console.info('[INFO]', message, ...args),
+        verbose: (message: any, ...args: any[]) => console.log('[VERBOSE]', message, ...args)
+      }
+    ),
     done: (err?: Error, result?: any) => {}
   };
   

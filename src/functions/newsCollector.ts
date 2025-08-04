@@ -5,8 +5,13 @@ import { delay } from '../utils/helpers';
 
 // Azure Functions 従来モデル用の型定義
 interface Context {
-  log: (msg: string, ...args: any[]) => void;
-  error: (msg: string, ...args: any[]) => void;
+  log: {
+    (msg: string, ...args: any[]): void;
+    error: (msg: string, ...args: any[]) => void;
+    warn: (msg: string, ...args: any[]) => void;
+    info: (msg: string, ...args: any[]) => void;
+    verbose: (msg: string, ...args: any[]) => void;
+  };
   done: (err?: Error, result?: any) => void;
 }
 
@@ -49,10 +54,10 @@ export async function newsCollector(context: Context, myTimer: Timer): Promise<v
           allNewsItems.push(...result.newsItems);
           context.log(`Step 3.${i+1}: ${organization.displayName}: ${result.newsItems.length}件取得成功`);
         } else {
-          context.error(`Step 3.${i+1}: ${organization.displayName}でエラー: ${result.error}`);
+          context.log.error(`Step 3.${i+1}: ${organization.displayName}でエラー: ${result.error}`);
         }
       } catch (orgError) {
-        context.error(`Step 3.${i+1}: ${organization.displayName}で例外発生:`, orgError);
+        context.log.error(`Step 3.${i+1}: ${organization.displayName}で例外発生:`, orgError);
       }
       
       // 次の団体との間隔（サーバー負荷軽減のため）
@@ -78,10 +83,10 @@ export async function newsCollector(context: Context, myTimer: Timer): Promise<v
     context.log('✅ ニュース収集バッチが正常に完了しました');
     
   } catch (error) {
-    context.error('❌ ニュース収集中にエラーが発生しました:');
-    context.error('エラータイプ:', error.constructor.name);
-    context.error('エラーメッセージ:', error.message);
-    context.error('エラースタック:', error.stack);
+    context.log.error('❌ ニュース収集中にエラーが発生しました:');
+    context.log.error('エラータイプ:', error.constructor.name);
+    context.log.error('エラーメッセージ:', error.message);
+    context.log.error('エラースタック:', error.stack);
     throw error;
   } finally {
     context.log('Cleanup: スクレイパーを終了中...');
@@ -89,7 +94,7 @@ export async function newsCollector(context: Context, myTimer: Timer): Promise<v
       await scraper.close();
       context.log('Cleanup: スクレイパー終了完了');
     } catch (cleanupError) {
-      context.error('Cleanup: スクレイパー終了エラー:', cleanupError);
+      context.log.error('Cleanup: スクレイパー終了エラー:', cleanupError);
     }
   }
 }

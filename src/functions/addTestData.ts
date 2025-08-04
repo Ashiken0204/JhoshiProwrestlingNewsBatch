@@ -48,8 +48,13 @@ const TEST_NEWS_DATA: NewsItem[] = [
 
 // Azure Functions 従来モデル用の型定義
 interface Context {
-  log: (msg: string, ...args: any[]) => void;
-  error: (msg: string, ...args: any[]) => void;
+  log: {
+    (msg: string, ...args: any[]): void;
+    error: (msg: string, ...args: any[]) => void;
+    warn: (msg: string, ...args: any[]) => void;
+    info: (msg: string, ...args: any[]) => void;
+    verbose: (msg: string, ...args: any[]) => void;
+  };
   res?: any;
 }
 
@@ -85,7 +90,7 @@ export async function addTestData(context: Context, req: any): Promise<void> {
       }
     };
   } catch (error) {
-    context.error('テストデータ追加エラー:', error);
+    context.log.error('テストデータ追加エラー:', error);
     
     context.res = {
       status: 500,
