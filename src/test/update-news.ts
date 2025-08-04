@@ -9,10 +9,15 @@ async function updateNews() {
     error: (message: any, ...args: any[]) => console.error(message, ...args)
   };
   
-  const mockTimer = {
-    isPastDue: false,
-    schedule: '0 */30 * * * *'
-  };
+      const mockTimer = {
+        isPastDue: false,
+        schedule: '0 */30 * * * *',
+        scheduleStatus: {
+            last: '2025-08-04T12:00:00.000Z',
+            next: '2025-08-04T12:30:00.000Z',
+            lastUpdated: '2025-08-04T12:00:00.000Z'
+        }
+    };
   
   try {
     await newsCollector(mockTimer, mockContext);
