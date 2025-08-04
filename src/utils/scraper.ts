@@ -5,12 +5,14 @@ import { NewsItem, NewsOrganization, ScrapingResult } from '../types/news';
 import { generateId, formatDate, isValidUrl } from './helpers';
 
 export class NewsScraper {
-  private browser: Browser | null = null;;
+  private browser: Browser | null = null;
 
   async initialize(): Promise<void> {
     try {
-      console.log('Puppeteerを初期化中...');
-      this.browser = await puppeteer.launch({
+      console.log('Puppeteerを初期化中... (Linux Azure Functions環境)');
+      
+      // Linux Azure Functions用の最適化された設定
+      const launchOptions = {
         headless: true,
         args: [
           '--no-sandbox',
@@ -19,18 +21,50 @@ export class NewsScraper {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--single-process',
           '--disable-gpu',
           '--disable-extensions',
           '--disable-background-timer-throttling',
           '--disable-backgrounding-occluded-windows',
-          '--disable-renderer-backgrounding'
+          '--disable-renderer-backgrounding',
+          '--disable-ipc-flooding-protection',
+          '--disable-hang-monitor',
+          '--disable-client-side-phishing-detection',
+          '--disable-popup-blocking',
+          '--disable-default-apps',
+          '--disable-prompt-on-repost',
+          '--disable-sync',
+          '--metrics-recording-only',
+          '--no-default-browser-check',
+          '--no-pings',
+          '--password-store=basic',
+          '--use-mock-keychain',
+          '--single-process'
         ],
-        timeout: 30000
-      });
-      console.log('Puppeteer初期化完了');
+        timeout: 30000,
+        // Puppeteerが自動でChromiumを検出（推奨）
+        // executablePath は指定せず、Puppeteerのバンドル版Chromiumを使用
+      };
+      
+      console.log('Launch options:', JSON.stringify(launchOptions, null, 2));
+      
+      this.browser = await puppeteer.launch(launchOptions);
+      console.log('Puppeteer初期化完了 - ブラウザインスタンス作成成功');
+      
+      // 初期化テスト
+      const page = await this.browser.newPage();
+      await page.goto('data:text/html,<h1>Test</h1>', { waitUntil: 'load' });
+      await page.close();
+      console.log('Puppeteer動作テスト完了');
+      
     } catch (error) {
       console.error('Puppeteer初期化エラー:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version
+      });
       throw error;
     }
   }
