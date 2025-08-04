@@ -10,6 +10,20 @@ export class NewsScraper {
   async initialize(): Promise<void> {
     try {
       console.log('Puppeteerを初期化中... (Linux Azure Functions環境)');
+      console.log('Environment variables:', {
+        PUPPETEER_CACHE_DIR: process.env.PUPPETEER_CACHE_DIR,
+        PUPPETEER_EXECUTABLE_PATH: process.env.PUPPETEER_EXECUTABLE_PATH,
+        PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+      });
+      
+      // Chrome実行可能ファイルのパスを検出
+      let executablePath = undefined;
+      
+      // 環境変数から取得を試行
+      if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+        executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+        console.log('Using PUPPETEER_EXECUTABLE_PATH:', executablePath);
+      }
       
       // Linux Azure Functions用の最適化された設定
       const launchOptions = {
@@ -41,8 +55,7 @@ export class NewsScraper {
           '--single-process'
         ],
         timeout: 30000,
-        // Puppeteerが自動でChromiumを検出（推奨）
-        // executablePath は指定せず、Puppeteerのバンドル版Chromiumを使用
+        ...(executablePath && { executablePath }) // 実行可能パスが見つかった場合のみ設定
       };
       
       console.log('Launch options:', JSON.stringify(launchOptions, null, 2));
@@ -63,9 +76,17 @@ export class NewsScraper {
         stack: error.stack,
         platform: process.platform,
         arch: process.arch,
-        nodeVersion: process.version
+        nodeVersion: process.version,
+        chromePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+        cacheDir: process.env.PUPPETEER_CACHE_DIR
       });
-      throw error;
+      
+      // Puppeteerが失敗した場合、Axiosのみでのスクレイピングにフォールバック
+      console.log('⚠️ Puppeteerが利用できません。Axiosのみでスクレイピングを継続します。');
+      this.browser = null; // Puppeteerを無効化
+      
+      // エラーを再スローせず、Axiosフォールバックを使用
+      return;
     }
   }
 

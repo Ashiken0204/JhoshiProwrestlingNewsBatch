@@ -12,8 +12,9 @@
     "test:manual": "npm run build && node dist/src/test/manual-test.js",
     "dev": "npm run build && npm run start",
     "clean": "rimraf dist",
-    "deploy": "npm run build && func azure functionapp publish",
-    "postinstall": "node -e \"try { require('puppeteer') } catch (e) { console.log('Puppeteer installation check completed') }\""
+    "deploy": "func azure functionapp publish func-jhoshi-news --build remote",
+    "deploy:local": "npm run build && func azure functionapp publish func-jhoshi-news",
+    "postinstall": "echo 'Installing Puppeteer Chrome...' && npx puppeteer browsers install chrome || echo 'Chrome installation completed with warnings'"
   },
   "dependencies": {
     "@azure/functions": "^4.5.0",
