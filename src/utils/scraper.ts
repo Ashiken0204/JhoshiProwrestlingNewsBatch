@@ -8,10 +8,31 @@ export class NewsScraper {
   private browser: Browser | null = null;
 
   async initialize(): Promise<void> {
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
+    try {
+      console.log('Puppeteerを初期化中...');
+      this.browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+          '--disable-extensions',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding'
+        ],
+        timeout: 30000
+      });
+      console.log('Puppeteer初期化完了');
+    } catch (error) {
+      console.error('Puppeteer初期化エラー:', error);
+      throw error;
+    }
   }
 
   async close(): Promise<void> {
