@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "name": "myTimer",
+      "type": "timerTrigger",
+      "direction": "in",
+      "schedule": "0 */30 * * * *"
+    }
+  ],
+  "scriptFile": "../dist/src/functions/newsCollector.js",
+  "entryPoint": "newsCollector"
+}
