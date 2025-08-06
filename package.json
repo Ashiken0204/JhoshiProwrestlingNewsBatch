@@ -19,8 +19,10 @@
   "dependencies": {
     "@azure/data-tables": "^13.3.1",
     "@azure/functions": "^4.5.0",
+    "@types/glob": "^8.1.0",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0-rc.12",
+    "glob": "^11.0.3",
     "iconv-lite": "^0.6.3",
     "puppeteer": "^23.1.1"
   },

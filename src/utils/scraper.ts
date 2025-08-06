@@ -1,6 +1,9 @@
 import puppeteer, { Browser } from 'puppeteer';
 import { load } from 'cheerio';
 import axios from 'axios';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as glob from 'glob';
 import { NewsItem, NewsOrganization, ScrapingResult } from '../types/news';
 import { generateId, formatDate, isValidUrl } from './helpers';
 
@@ -19,10 +22,56 @@ export class NewsScraper {
       // Chrome実行可能ファイルのパスを検出
       let executablePath = undefined;
       
-      // 環境変数から取得を試行
+      // 1. 環境変数から取得を試行
       if (process.env.PUPPETEER_EXECUTABLE_PATH) {
         executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
         console.log('Using PUPPETEER_EXECUTABLE_PATH:', executablePath);
+      } else {
+        // 2. globを使用してChromium実行ファイルを検索
+        console.log('Chromium実行ファイルを検索中...');
+        try {
+          const chromiumPatterns = [
+            'node_modules/puppeteer/.local-chromium/linux-*/chrome-linux/chrome',
+            'node_modules/puppeteer/.cache/chrome/linux-*/chrome-linux/chrome',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium'
+          ];
+          
+          for (const pattern of chromiumPatterns) {
+            const matches = glob.sync(pattern);
+            if (matches.length > 0) {
+              executablePath = matches[0];
+              console.log('Found Chromium executable:', executablePath);
+              break;
+            }
+          }
+          
+          if (executablePath) {
+            // 実行権限を確認・設定
+            try {
+              const stats = fs.statSync(executablePath);
+              if (!(stats.mode & fs.constants.S_IXUSR)) {
+                console.log('Setting executable permissions for:', executablePath);
+                fs.chmodSync(executablePath, '755');
+              }
+              console.log('Chromium executable is ready:', executablePath);
+            } catch (permError) {
+              console.error('Permission setting failed:', permError);
+              executablePath = undefined;
+            }
+          } else {
+            console.log('No Chromium executable found in common locations');
+          }
+        } catch (globError) {
+          console.error('Glob search failed:', globError);
+        }
+      }
+      
+      if (!executablePath) {
+        console.log('⚠️ Chromium実行ファイルが見つかりません。Puppeteerを無効化します。');
+        this.browser = null;
+        return;
       }
       
       // Linux Azure Functions用の最適化された設定
@@ -55,7 +104,7 @@ export class NewsScraper {
           '--single-process'
         ],
         timeout: 30000,
-        ...(executablePath && { executablePath }) // 実行可能パスが見つかった場合のみ設定
+        executablePath
       };
       
       console.log('Launch options:', JSON.stringify(launchOptions, null, 2));
@@ -788,22 +837,60 @@ export class NewsScraper {
       if (!this.browser) {
         console.log('⚠️ Puppeteerブラウザが初期化されていません。Axiosフォールバックを使用します。');
         
-        // アイスリボンの場合、Axiosで再度試行（文字化けを許容）
+        // アイスリボンの場合、Axiosで再度試行（Shift_JIS対応）
         if (isIceRibbon) {
           try {
-            console.log('Puppeteer失敗のためAxiosで再試行（文字化け許容）');
-            const response = await axios.get(url, {
-              timeout: 15000,
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3'
-              }
-            });
+            console.log('Puppeteer失敗のためAxiosで再試行（Shift_JIS対応）');
             
-            if (response.data && response.data.length > 1000) {
-              console.log(`Axiosフォールバック成功: ${response.data.length}文字（文字化け許容）`);
-              return response.data;
+            // まずはarraybufferで取得してShift_JIS変換を試行
+            try {
+              const response = await axios.get(url, {
+                timeout: 15000,
+                responseType: 'arraybuffer',
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                  'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3'
+                }
+              });
+              
+              // iconv-liteを使用してShift_JISからUTF-8に変換
+              try {
+                const iconv = require('iconv-lite');
+                const html = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
+                
+                if (html && html.length > 1000) {
+                  console.log(`Axios + iconv-liteフォールバック成功: ${html.length}文字（Shift_JIS変換）`);
+                  return html;
+                }
+              } catch (iconvError) {
+                console.log('iconv-lite変換失敗、UTF-8として処理:', iconvError instanceof Error ? iconvError.message : iconvError);
+              }
+              
+              // iconv-liteが失敗した場合、UTF-8として処理
+              const utf8Html = Buffer.from(response.data).toString('utf8');
+              if (utf8Html && utf8Html.length > 1000) {
+                console.log(`Axios UTF-8フォールバック成功: ${utf8Html.length}文字（文字化け許容）`);
+                return utf8Html;
+              }
+              
+            } catch (arraybufferError) {
+              console.log('arraybuffer取得失敗、通常のUTF-8取得を試行:', arraybufferError instanceof Error ? arraybufferError.message : arraybufferError);
+              
+              // 通常のUTF-8取得を試行
+              const response = await axios.get(url, {
+                timeout: 15000,
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                  'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3'
+                }
+              });
+              
+              if (response.data && response.data.length > 1000) {
+                console.log(`Axios UTF-8フォールバック成功: ${response.data.length}文字（文字化け許容）`);
+                return response.data;
+              }
             }
           } catch (axiosFallbackError) {
             console.log('Axiosフォールバックも失敗:', axiosFallbackError instanceof Error ? axiosFallbackError.message : axiosFallbackError);
