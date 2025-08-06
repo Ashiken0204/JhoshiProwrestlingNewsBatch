@@ -36,11 +36,11 @@ export const ORGANIZATIONS: NewsOrganization[] = [
     baseUrl: 'https://iceribbon.com',
     newsListUrl: 'https://iceribbon.com/news_list.php',
     selectors: {
-      newsItems: 'tr, .news-item, article',
+      newsItems: 'tr, .news-item, li',
       title: 'a, .title, td',
       summary: '.summary, .content',
       thumbnail: 'img',
-      publishedAt: '.date, time, td',
+      publishedAt: '.date, time, td:first-child',
       detailUrl: 'a'
     }
   },

@@ -13,23 +13,33 @@ async function testScraping() {
   try {
     await scraper.initialize();
     
-    // 最初の団体のみテスト
-    const testOrg = ORGANIZATIONS[0];
-    console.log(`テスト対象: ${testOrg.displayName}`);
+    // アイスリボンを含む複数の団体をテスト
+    const testOrgs = ORGANIZATIONS.filter(org => 
+      org.name === 'stardom' || org.name === 'ice_ribbon'
+    );
     
-    const result = await scraper.scrapeNews(testOrg);
-    
-    if (result.success) {
-      console.log(`✅ 成功: ${result.newsItems.length}件取得`);
-      console.log('取得したニュース:');
-      result.newsItems.slice(0, 3).forEach((item, index) => {
-        console.log(`${index + 1}. ${item.title}`);
-        console.log(`   日時: ${item.publishedAt}`);
-        console.log(`   URL: ${item.detailUrl}`);
-        console.log('');
-      });
-    } else {
-      console.log(`❌ 失敗: ${result.error}`);
+    for (const testOrg of testOrgs) {
+      console.log(`\nテスト対象: ${testOrg.displayName}`);
+      console.log(`URL: ${testOrg.newsListUrl}`);
+      
+      const result = await scraper.scrapeNews(testOrg);
+      
+      if (result.success) {
+        console.log(`✅ 成功: ${result.newsItems.length}件取得`);
+        if (result.newsItems.length > 0) {
+          console.log('取得したニュース:');
+          result.newsItems.slice(0, 3).forEach((item, index) => {
+            console.log(`${index + 1}. ${item.title}`);
+            console.log(`   日時: ${item.publishedAt}`);
+            console.log(`   URL: ${item.detailUrl}`);
+            console.log('');
+          });
+        } else {
+          console.log('⚠️ ニュースが取得できませんでした');
+        }
+      } else {
+        console.log(`❌ 失敗: ${result.error}`);
+      }
     }
     
   } catch (error) {

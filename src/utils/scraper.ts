@@ -279,24 +279,53 @@ export class NewsScraper {
   private extractIceRibbonNews($: any): any[] {
     const items: any[] = [];
     
-    // アイスリボンのニュース構造を解析
-    $('table tr, .news-item, article').each((index: number, element: any) => {
+    // アイスリボン公式サイトのニュースリスト構造を解析
+    // 日本語サイトなので、日本語の日付パターンも考慮
+    $('tr, .news-item, li').each((index: number, element: any) => {
       const $item = $(element);
       const $link = $item.find('a').first();
       
       if (!$link.length) return;
       
-      const title = $link.text().trim() || $item.find('td').last().text().trim();
+      let title = $link.text().trim();
       const detailUrl = $link.attr('href') || '';
+      
+      // テーブル構造の場合、tdからタイトルを取得
+      if (!title || title.length < 3) {
+        const $titleCell = $item.find('td').last();
+        title = $titleCell.text().trim();
+      }
+      
+      // 日付の取得（テーブル構造を想定）
+      let publishedAt = '';
+      const $dateCell = $item.find('td').first();
+      if ($dateCell.length) {
+        publishedAt = $dateCell.text().trim();
+      }
+      
+      // 日付が見つからない場合、記事内から抽出
+      if (!publishedAt) {
+        const dateMatch = $item.text().match(/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/);
+        publishedAt = dateMatch ? dateMatch[1] : '';
+      }
+      
+      // サムネイル画像の取得
       const thumbnail = $item.find('img').first().attr('src') || '';
       
-      // テーブル形式の日付取得
-      const publishedAt = $item.find('td').first().text().trim();
+      // ナビゲーションメニューや不要なリンクをスキップ
+      // 日付パターンがあるもの（実際のニュース記事）のみを対象とする
+      const hasDate = publishedAt && publishedAt.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/);
+      const isNewsArticle = detailUrl.includes('news_detail.php');
       
-      if (title && detailUrl) {
+      if (title && detailUrl && title.length > 10 && 
+          !detailUrl.includes('javascript:') && 
+          !detailUrl.includes('#') &&
+          (hasDate || isNewsArticle) &&
+          !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介|イベント|お問い合わせ|チケット|YouTube)$/i)) {
+        
         items.push({
-          title,
-          summary: '',
+          title: title.replace(/\s+/g, ' ').trim(), // 余分な空白を除去
+          summary: '', // 公式サイトでは概要は別途取得が必要
           thumbnail,
           publishedAt,
           detailUrl
@@ -304,7 +333,37 @@ export class NewsScraper {
       }
     });
     
-    return items;
+    // テーブル構造でニュースが取得できない場合の代替手段
+    if (items.length === 0) {
+      $('a').each((index: number, element: any) => {
+        const $link = $(element);
+        const title = $link.text().trim();
+        const detailUrl = $link.attr('href') || '';
+        
+        // ニュース記事らしいリンクを検出
+        if (title && detailUrl && 
+            title.length > 10 && 
+            !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介)$/i) &&
+            (detailUrl.includes('news_detail.php') || detailUrl.includes('.php')) &&
+            !detailUrl.includes('javascript:')) {
+          
+          // 親要素から日付を探す
+          const $parent = $link.closest('tr, li, .news-item');
+          const dateMatch = $parent.text().match(/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/);
+          const publishedAt = dateMatch ? dateMatch[1] : '';
+          
+          items.push({
+            title: title.replace(/\s+/g, ' ').trim(),
+            summary: '',
+            thumbnail: '',
+            publishedAt,
+            detailUrl
+          });
+        }
+      });
+    }
+    
+    return items.slice(0, 10); // 最大10件に制限
   }
 
   private extractWaveNews($: any): any[] {
