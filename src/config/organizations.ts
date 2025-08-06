@@ -92,12 +92,12 @@ export const ORGANIZATIONS: NewsOrganization[] = [
     baseUrl: 'https://www-diana.com',
     newsListUrl: 'https://www-diana.com/news/',
     selectors: {
-      newsItems: 'li',
-      title: 'a',
-      summary: 'p',
-      thumbnail: 'img',
-      publishedAt: 'li',
-      detailUrl: 'a'
+      newsItems: '[id^="rt-tpg-container-"] .rt-detail',
+      title: '.entry-title a',
+      summary: '.entry-content',
+      thumbnail: '.rt-img-holder img',
+      publishedAt: '.entry-date',
+      detailUrl: '.entry-title a'
     }
   }
 ];

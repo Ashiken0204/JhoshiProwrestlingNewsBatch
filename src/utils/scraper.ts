@@ -730,33 +730,30 @@ export class NewsScraper {
     
     console.log('ディアナニュース抽出開始');
     
-    // ディアナの実際のサイト構造に基づく抽出
-    $('li').each((index: number, element: any) => {
+    // rt-tpg-container-で始まるIDを持つ要素から抽出
+    $('[id^="rt-tpg-container-"] .rt-detail').each((index: number, element: any) => {
       const $item = $(element);
       
-      // 日付の抽出（li要素の最初の部分から）
-      const dateMatch = $item.text().match(/(\d{4}年\d{1,2}月\d{1,2}日)/);
-      if (!dateMatch) return;
-      
-      const publishedAt = dateMatch[1];
-      
-      // タイトルの抽出（a要素から）
-      const $titleLink = $item.find('a').first();
+      // タイトルの抽出
+      const $titleLink = $item.find('.entry-title a').first();
       const title = $titleLink.text().trim();
       
       // URLの抽出
       const detailUrl = $titleLink.attr('href') || '';
       
-      // サムネイルの抽出
-      const thumbnail = $item.find('img').first().attr('src') || '';
+      // 日付の抽出
+      const publishedAt = $item.find('.entry-date').first().text().trim();
       
-      // 概要の抽出（p要素から）
-      const summary = $item.find('p').first().text().trim();
+      // サムネイルの抽出
+      const thumbnail = $item.find('.rt-img-holder img').first().attr('src') || '';
+      
+      // 概要の抽出
+      const summary = $item.find('.entry-content').first().text().trim();
       
       console.log(`ディアナ記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
       
-      // 有効なデータの場合のみ追加
-      if (title && detailUrl && publishedAt && 
+      // 有効なデータの場合のみ追加（日付がなくてもタイトルとURLがあれば追加）
+      if (title && detailUrl && 
           title.length > 3 && 
           !detailUrl.includes('javascript:') && 
           !detailUrl.includes('#')) {
@@ -765,7 +762,7 @@ export class NewsScraper {
           title,
           summary,
           thumbnail,
-          publishedAt,
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0], // 日付がない場合は今日の日付を使用
           detailUrl
         });
       }
