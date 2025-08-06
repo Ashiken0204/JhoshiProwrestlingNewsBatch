@@ -466,17 +466,43 @@ export class NewsScraper {
 
   private async fetchPageContent(url: string): Promise<string | null> {
     try {
-      // まずはaxiosで試行
-      try {
-        const response = await axios.get(url, {
-          timeout: 10000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
-        return response.data;
-      } catch (axiosError) {
-        console.log('axios失敗、puppeteerで再試行');
+      const isIceRibbon = url.includes('iceribbon.com');
+      
+      // アイスリボンサイトの場合、Shift_JISエンコーディング対応
+      if (isIceRibbon) {
+        console.log(`アイスリボンサイト検出、Shift_JIS対応: ${url}`);
+        
+        try {
+          const response = await axios.get(url, {
+            timeout: 10000,
+            responseType: 'arraybuffer', // バイナリデータとして取得
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
+          
+          // Shift_JISからUTF-8に変換
+          const iconv = require('iconv-lite');
+          const html = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
+          console.log(`アイスリボンサイト取得成功（Shift_JIS→UTF-8変換）: ${html.length}文字`);
+          return html;
+          
+        } catch (axiosError) {
+          console.log('アイスリボンサイトaxios失敗、puppeteerで再試行');
+        }
+      } else {
+        // 通常のサイト（UTF-8）の場合
+        try {
+          const response = await axios.get(url, {
+            timeout: 10000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+          });
+          return response.data;
+        } catch (axiosError) {
+          console.log('axios失敗、puppeteerで再試行');
+        }
       }
 
       // puppeteerで試行
