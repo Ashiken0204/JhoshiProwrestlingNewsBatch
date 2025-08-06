@@ -241,6 +241,9 @@ export class NewsScraper {
       case 'sendaigirls':
         return this.extractSendaigirlsNews($);
       
+      case 'diana':
+        return this.extractDianaNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -718,6 +721,57 @@ export class NewsScraper {
     });
     
     console.log(`仙女抽出結果: ${items.length}件`);
+    
+    return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractDianaNews($: any): any[] {
+    const items: any[] = [];
+    
+    console.log('ディアナニュース抽出開始');
+    
+    // ディアナの実際のサイト構造に基づく抽出
+    $('li').each((index: number, element: any) => {
+      const $item = $(element);
+      
+      // 日付の抽出（li要素の最初の部分から）
+      const dateMatch = $item.text().match(/(\d{4}年\d{1,2}月\d{1,2}日)/);
+      if (!dateMatch) return;
+      
+      const publishedAt = dateMatch[1];
+      
+      // タイトルの抽出（a要素から）
+      const $titleLink = $item.find('a').first();
+      const title = $titleLink.text().trim();
+      
+      // URLの抽出
+      const detailUrl = $titleLink.attr('href') || '';
+      
+      // サムネイルの抽出
+      const thumbnail = $item.find('img').first().attr('src') || '';
+      
+      // 概要の抽出（p要素から）
+      const summary = $item.find('p').first().text().trim();
+      
+      console.log(`ディアナ記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && detailUrl && publishedAt && 
+          title.length > 3 && 
+          !detailUrl.includes('javascript:') && 
+          !detailUrl.includes('#')) {
+        
+        items.push({
+          title,
+          summary,
+          thumbnail,
+          publishedAt,
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`ディアナ抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }

@@ -85,5 +85,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: 'li',
       detailUrl: 'h3 a'
     }
+  },
+  {
+    name: 'diana',
+    displayName: 'ディアナ',
+    baseUrl: 'https://www-diana.com',
+    newsListUrl: 'https://www-diana.com/news/',
+    selectors: {
+      newsItems: 'li',
+      title: 'a',
+      summary: 'p',
+      thumbnail: 'img',
+      publishedAt: 'li',
+      detailUrl: 'a'
+    }
   }
 ];
