@@ -742,7 +742,7 @@ export class NewsScraper {
       const detailUrl = $titleLink.attr('href') || '';
       
       // 日付の抽出
-      const publishedAt = $item.find('.entry-date').first().text().trim();
+      const publishedAt = $item.find('.date-meta').first().text().trim();
       
       // サムネイルの抽出
       const thumbnail = $item.find('.rt-img-holder img').first().attr('src') || '';

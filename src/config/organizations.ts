@@ -96,7 +96,7 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       title: '.entry-title a',
       summary: '.entry-content',
       thumbnail: '.rt-img-holder img',
-      publishedAt: '.entry-date',
+      publishedAt: '.date-meta',
       detailUrl: '.entry-title a'
     }
   }
