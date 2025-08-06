@@ -172,6 +172,9 @@ export class NewsScraper {
       case 'wave':
         return this.extractWaveNews($);
       
+      case 'chocopro':
+        return this.extractChocoproNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -274,6 +277,149 @@ export class NewsScraper {
     });
     
     return items;
+  }
+
+  private extractChocoproNews($: any): any[] {
+    const items: any[] = [];
+    
+    // チョコプロサイトのニュースリスト構造を解析
+    console.log('チョコプロサイトの構造を解析中...');
+    
+    // メインコンテンツエリアからニュース項目を抽出
+    $('article, .post, .news-item, .entry').each((index: number, element: any) => {
+      const $item = $(element);
+      const $link = $item.find('a').first();
+      
+      if (!$link.length) return;
+      
+      let title = $link.text().trim();
+      const detailUrl = $link.attr('href') || '';
+      
+      // タイトルが短すぎる場合、他の要素から取得を試行
+      if (!title || title.length < 5) {
+        title = $item.find('h1, h2, h3, .title').first().text().trim();
+      }
+      
+      // チョコプロ特有のタイトル整形
+      if (title) {
+        // 日付とカテゴリを除去してメインタイトルを抽出
+        title = title
+          .replace(/^\d{4}\.\d{2}\.\d{2}\s+/, '') // 先頭の日付を除去
+          .replace(/\s+(大会情報|試合結果|ニュース|インタビュー|メディア情報|物販情報|イベント情報)\/[^\s]+\s+/, ' ') // カテゴリを除去
+          .replace(/\s+gtmv\s+/, ' ') // gtmvを除去
+          .replace(/\s+/g, ' ') // 複数の空白を1つに
+          .trim();
+        
+        // 長すぎるタイトルを適切な長さに切り詰め
+        if (title.length > 100) {
+          title = title.substring(0, 100).trim();
+          // 文の途中で切れないように調整
+          const lastSpace = title.lastIndexOf(' ');
+          const lastPunctuation = Math.max(
+            title.lastIndexOf('。'),
+            title.lastIndexOf('！'),
+            title.lastIndexOf('？'),
+            title.lastIndexOf('」')
+          );
+          
+          if (lastPunctuation > 80) {
+            title = title.substring(0, lastPunctuation + 1);
+          } else if (lastSpace > 80) {
+            title = title.substring(0, lastSpace);
+          }
+          
+          title = title.trim();
+        }
+      }
+      
+      // 日付の取得
+      let publishedAt = '';
+      const $dateElement = $item.find('.date, time, .published, .entry-date').first();
+      if ($dateElement.length) {
+        publishedAt = $dateElement.text().trim() || $dateElement.attr('datetime') || '';
+      }
+      
+      // 日付が見つからない場合、テキストから抽出を試行
+      if (!publishedAt) {
+        const dateMatch = $item.text().match(/(\d{4}[-\.\/]\d{1,2}[-\.\/]\d{1,2})/);
+        publishedAt = dateMatch ? dateMatch[1] : '';
+      }
+      
+      // 概要の取得
+      let summary = '';
+      const $summaryElement = $item.find('.excerpt, .summary, .content, .entry-content').first();
+      if ($summaryElement.length) {
+        summary = $summaryElement.text().trim().substring(0, 200);
+      }
+      
+      // サムネイル画像の取得
+      const thumbnail = $item.find('img').first().attr('src') || '';
+      
+      // URLの正規化
+      let fullDetailUrl = detailUrl;
+      if (detailUrl && !detailUrl.startsWith('http')) {
+        fullDetailUrl = detailUrl.startsWith('/') 
+          ? `https://chocoprowrestling.com${detailUrl}`
+          : `https://chocoprowrestling.com/${detailUrl}`;
+      }
+      
+      // ニュース記事として有効かチェック
+      const isValidNews = title && 
+                         title.length > 5 && 
+                         fullDetailUrl && 
+                         !fullDetailUrl.includes('javascript:') &&
+                         !fullDetailUrl.includes('#') &&
+                         !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介|チケット|YouTube|Instagram|X|Twitter)$/i);
+      
+      if (isValidNews) {
+        items.push({
+          title: title.replace(/\s+/g, ' ').trim(),
+          summary: summary || '',
+          thumbnail: thumbnail || '',
+          publishedAt: publishedAt || new Date().toISOString(),
+          detailUrl: fullDetailUrl
+        });
+      }
+    });
+    
+    // リスト形式のニュースも確認
+    if (items.length === 0) {
+      console.log('記事形式で見つからないため、リスト形式を確認中...');
+      
+      $('li, .news-list-item, .post-list-item').each((index: number, element: any) => {
+        const $item = $(element);
+        const $link = $item.find('a').first();
+        
+        if (!$link.length) return;
+        
+        const title = $link.text().trim();
+        const detailUrl = $link.attr('href') || '';
+        
+        if (title && title.length > 5 && detailUrl && !detailUrl.includes('javascript:')) {
+          let fullDetailUrl = detailUrl;
+          if (!detailUrl.startsWith('http')) {
+            fullDetailUrl = detailUrl.startsWith('/') 
+              ? `https://chocoprowrestling.com${detailUrl}`
+              : `https://chocoprowrestling.com/${detailUrl}`;
+          }
+          
+          // 日付の抽出
+          const dateMatch = $item.text().match(/(\d{4}[-\.\/]\d{1,2}[-\.\/]\d{1,2})/);
+          const publishedAt = dateMatch ? dateMatch[1] : '';
+          
+          items.push({
+            title: title.replace(/\s+/g, ' ').trim(),
+            summary: '',
+            thumbnail: $item.find('img').first().attr('src') || '',
+            publishedAt: publishedAt || new Date().toISOString(),
+            detailUrl: fullDetailUrl
+          });
+        }
+      });
+    }
+    
+    console.log(`チョコプロニュース抽出完了: ${items.length}件`);
+    return items.slice(0, 10); // 最大10件に制限
   }
 
   private extractIceRibbonNews($: any): any[] {
@@ -522,6 +668,22 @@ export class NewsScraper {
           
         } catch (axiosError) {
           console.log('アイスリボンサイトaxios失敗、puppeteerで再試行:', axiosError instanceof Error ? axiosError.message : axiosError);
+          
+          // Azure Functions環境での特別な処理
+          if (process.env.FUNCTIONS_WORKER_RUNTIME) {
+            console.log('Azure Functions環境を検出、特別なエラーハンドリングを適用');
+            
+            // タイムアウト時間を延長
+            if (axiosError instanceof Error && axiosError.message.includes('timeout')) {
+              console.log('タイムアウトエラーのため、Puppeteerでリトライします');
+            }
+            
+            // ネットワークエラーの場合の処理
+            if (axiosError instanceof Error && (axiosError.message.includes('ENOTFOUND') || axiosError.message.includes('ECONNREFUSED'))) {
+              console.log('ネットワークエラーのため、少し待機してからPuppeteerでリトライします');
+              await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+          }
         }
       } else {
         // 通常のサイト（UTF-8）の場合

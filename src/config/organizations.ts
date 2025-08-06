@@ -57,5 +57,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.date, time',
       detailUrl: 'a'
     }
+  },
+  {
+    name: 'chocopro',
+    displayName: 'チョコプロ',
+    baseUrl: 'https://chocoprowrestling.com',
+    newsListUrl: 'https://chocoprowrestling.com/',
+    selectors: {
+      newsItems: 'article, .post, .news-item, li',
+      title: 'a, h1, h2, h3, .title',
+      summary: '.excerpt, .summary, .content',
+      thumbnail: 'img',
+      publishedAt: '.date, time, .published',
+      detailUrl: 'a'
+    }
   }
 ];
