@@ -71,5 +71,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.date, time, .published',
       detailUrl: 'a'
     }
+  },
+  {
+    name: 'sendaigirls',
+    displayName: '仙女',
+    baseUrl: 'https://sendaigirls.jp',
+    newsListUrl: 'https://sendaigirls.jp/news/',
+    selectors: {
+      newsItems: 'li',
+      title: 'h3 a',
+      summary: 'p',
+      thumbnail: 'img',
+      publishedAt: 'li',
+      detailUrl: 'h3 a'
+    }
   }
 ];
