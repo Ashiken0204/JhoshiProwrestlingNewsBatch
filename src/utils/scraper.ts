@@ -474,21 +474,54 @@ export class NewsScraper {
         
         try {
           const response = await axios.get(url, {
-            timeout: 10000,
+            timeout: 15000,
             responseType: 'arraybuffer', // バイナリデータとして取得
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+              'Accept-Encoding': 'gzip, deflate, br'
             }
           });
           
-          // Shift_JISからUTF-8に変換
+          // Shift_JISからUTF-8に変換（複数の方法を試行）
           const iconv = require('iconv-lite');
-          const html = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
-          console.log(`アイスリボンサイト取得成功（Shift_JIS→UTF-8変換）: ${html.length}文字`);
+          let html: string;
+          
+          try {
+            // まずShift_JISで試行
+            html = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
+            console.log(`Shift_JIS変換成功: ${html.length}文字`);
+          } catch (shiftJisError) {
+            try {
+              // EUC-JPで試行
+              html = iconv.decode(Buffer.from(response.data), 'EUC-JP');
+              console.log(`EUC-JP変換成功: ${html.length}文字`);
+            } catch (eucError) {
+              try {
+                // Windows-31Jで試行（Shift_JISの拡張版）
+                html = iconv.decode(Buffer.from(response.data), 'Windows-31J');
+                console.log(`Windows-31J変換成功: ${html.length}文字`);
+              } catch (win31jError) {
+                // UTF-8として処理
+                html = Buffer.from(response.data).toString('utf8');
+                console.log(`UTF-8フォールバック: ${html.length}文字`);
+              }
+            }
+          }
+          
+          // 文字化けチェック
+          const hasMojibake = html.includes('�') || html.includes('?');
+          if (hasMojibake) {
+            console.log('⚠️ 文字化けが検出されました、Puppeteerで再試行します');
+            throw new Error('文字化けが検出されました');
+          }
+          
+          console.log(`アイスリボンサイト取得成功（エンコーディング変換完了）: ${html.length}文字`);
           return html;
           
         } catch (axiosError) {
-          console.log('アイスリボンサイトaxios失敗、puppeteerで再試行');
+          console.log('アイスリボンサイトaxios失敗、puppeteerで再試行:', axiosError instanceof Error ? axiosError.message : axiosError);
         }
       } else {
         // 通常のサイト（UTF-8）の場合
@@ -513,10 +546,49 @@ export class NewsScraper {
       const page = await this.browser!.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+      // アイスリボンサイトの場合、特別な設定
+      if (isIceRibbon) {
+        console.log('Puppeteerでアイスリボンサイト処理（エンコーディング対応）');
+        
+        // ページのエンコーディングを設定
+        await page.setExtraHTTPHeaders({
+          'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+          'Accept-Charset': 'Shift_JIS,UTF-8;q=0.7,*;q=0.3'
+        });
+        
+        // ページを読み込み、エンコーディングを確認
+        const response = await page.goto(url, { 
+          waitUntil: 'domcontentloaded', 
+          timeout: 30000 
+        });
+        
+        if (!response || !response.ok()) {
+          throw new Error(`HTTP ${response?.status()}: ${response?.statusText()}`);
+        }
+        
+        // メタタグからエンコーディングを取得し、必要に応じて設定
+        await page.evaluate(() => {
+          const metaCharset = document.querySelector('meta[charset]') as HTMLMetaElement;
+          const metaHttpEquiv = document.querySelector('meta[http-equiv="Content-Type"]') as HTMLMetaElement;
+          
+          if (!metaCharset && !metaHttpEquiv) {
+            // Shift_JISのメタタグを追加
+            const meta = document.createElement('meta');
+            meta.setAttribute('charset', 'Shift_JIS');
+            document.head.insertBefore(meta, document.head.firstChild);
+          }
+        });
+        
+        // 少し待ってからコンテンツを取得
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } else {
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+      }
+      
       const html = await page.content();
       await page.close();
       
+      console.log(`Puppeteerで取得成功: ${html.length}文字`);
       return html;
     } catch (error) {
       console.error(`ページ取得エラー: ${url}`, error);
