@@ -448,6 +448,20 @@ export class NewsScraper {
     
     console.log(`アイスリボンHTML解析開始: ${htmlContent.length}文字`);
     
+    // Azure Functions環境での詳細ログ
+    if (process.env.FUNCTIONS_WORKER_RUNTIME) {
+      console.log('🔍 Azure Functions環境: アイスリボンHTML構造分析');
+      console.log(`HTML内容サンプル: ${htmlContent.substring(0, 500)}...`);
+      
+      // 重要な要素の存在チェック
+      const tableCount = (htmlContent.match(/<table/g) || []).length;
+      const trCount = (htmlContent.match(/<tr/g) || []).length;
+      const linkCount = (htmlContent.match(/<a[^>]+href/g) || []).length;
+      const newsDetailCount = (htmlContent.match(/news_detail\.php/g) || []).length;
+      
+      console.log(`要素数統計: table=${tableCount}, tr=${trCount}, link=${linkCount}, news_detail=${newsDetailCount}`);
+    }
+    
     // アイスリボン公式サイトのニュースリスト構造を解析
     // 日本語サイトなので、日本語の日付パターンも考慮
     $('tr, .news-item, li').each((index: number, element: any) => {
@@ -502,8 +516,11 @@ export class NewsScraper {
       }
     });
     
+    console.log(`第1段階抽出完了: ${items.length}件 (tr, .news-item, li要素から)`);
+    
     // テーブル構造でニュースが取得できない場合の代替手段
     if (items.length === 0) {
+      console.log('第1段階で0件のため、第2段階抽出を実行 (全aタグから)');
       $('a').each((index: number, element: any) => {
         const $link = $(element);
         const title = $link.text().trim();
@@ -530,6 +547,22 @@ export class NewsScraper {
           });
         }
       });
+      
+      console.log(`第2段階抽出完了: ${items.length}件 (全aタグから)`);
+    }
+    
+    console.log(`アイスリボン最終抽出結果: ${items.length}件`);
+    
+    // Azure Functions環境での詳細結果ログ
+    if (process.env.FUNCTIONS_WORKER_RUNTIME && items.length > 0) {
+      console.log('🔍 Azure Functions環境: 抽出されたニュース詳細');
+      items.slice(0, 3).forEach((item, index) => {
+        console.log(`${index + 1}. タイトル: ${item.title.substring(0, 50)}...`);
+        console.log(`   URL: ${item.detailUrl}`);
+        console.log(`   日付: ${item.publishedAt}`);
+      });
+    } else if (process.env.FUNCTIONS_WORKER_RUNTIME && items.length === 0) {
+      console.log('⚠️ Azure Functions環境: ニュース抽出が0件でした');
     }
     
     return items.slice(0, 10); // 最大10件に制限
