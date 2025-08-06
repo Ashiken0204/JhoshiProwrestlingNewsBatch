@@ -495,16 +495,19 @@ export class NewsScraper {
       // サムネイル画像の取得
       const thumbnail = $item.find('img').first().attr('src') || '';
       
-      // ナビゲーションメニューや不要なリンクをスキップ
-      // 日付パターンがあるもの（実際のニュース記事）のみを対象とする
-      const hasDate = publishedAt && publishedAt.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/);
-      const isNewsArticle = detailUrl.includes('news_detail.php');
-      
-      if (title && detailUrl && title.length > 10 && 
-          !detailUrl.includes('javascript:') && 
-          !detailUrl.includes('#') &&
-          (hasDate || isNewsArticle) &&
-          !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介|イベント|お問い合わせ|チケット|YouTube)$/i)) {
+              // ナビゲーションメニューや不要なリンクをスキップ
+        // 日付パターンがあるもの（実際のニュース記事）のみを対象とする
+        const hasDate = publishedAt && publishedAt.match(/\d{4}[-\/]\d{1,2}[-\/]\d{1,2}/);
+        const isNewsArticle = detailUrl.includes('news_detail.php');
+        
+        // 文字化けがあっても、news_detail.phpを含むリンクは有効なニュースとして扱う
+        const isValidNewsLink = detailUrl.includes('news_detail.php') && title.length > 3;
+        
+        if (title && detailUrl && 
+            !detailUrl.includes('javascript:') && 
+            !detailUrl.includes('#') &&
+            (hasDate || isNewsArticle || isValidNewsLink) &&
+            !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介|イベント|お問い合わせ|チケット|YouTube)$/i)) {
         
         items.push({
           title: title.replace(/\s+/g, ' ').trim(), // 余分な空白を除去
@@ -526,11 +529,14 @@ export class NewsScraper {
         const title = $link.text().trim();
         const detailUrl = $link.attr('href') || '';
         
-        // ニュース記事らしいリンクを検出
-        if (title && detailUrl && 
-            title.length > 10 && 
-            !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介)$/i) &&
-            (detailUrl.includes('news_detail.php') || detailUrl.includes('.php')) &&
+        // ニュース記事らしいリンクを検出（文字化け対応）
+        const isValidNewsUrl = detailUrl.includes('news_detail.php') || detailUrl.includes('.php');
+        const hasMinimumTitle = title && title.length > 3; // 最小タイトル長を短縮
+        const isNotNavigation = !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介)$/i);
+        
+        if (hasMinimumTitle && detailUrl && 
+            isValidNewsUrl &&
+            isNotNavigation &&
             !detailUrl.includes('javascript:')) {
           
           // 親要素から日付を探す
@@ -778,7 +784,36 @@ export class NewsScraper {
         await this.initialize();
       }
 
-      const page = await this.browser!.newPage();
+      // Azure Functions環境でPuppeteerが初期化できない場合の対処
+      if (!this.browser) {
+        console.log('⚠️ Puppeteerブラウザが初期化されていません。Axiosフォールバックを使用します。');
+        
+        // アイスリボンの場合、Axiosで再度試行（文字化けを許容）
+        if (isIceRibbon) {
+          try {
+            console.log('Puppeteer失敗のためAxiosで再試行（文字化け許容）');
+            const response = await axios.get(url, {
+              timeout: 15000,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3'
+              }
+            });
+            
+            if (response.data && response.data.length > 1000) {
+              console.log(`Axiosフォールバック成功: ${response.data.length}文字（文字化け許容）`);
+              return response.data;
+            }
+          } catch (axiosFallbackError) {
+            console.log('Axiosフォールバックも失敗:', axiosFallbackError instanceof Error ? axiosFallbackError.message : axiosFallbackError);
+          }
+        }
+        
+        throw new Error('Puppeteerが利用できず、Axiosフォールバックも失敗しました');
+      }
+
+      const page = await this.browser.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
       // アイスリボンサイトの場合、Azure Functions環境に最適化された堅牢な処理
