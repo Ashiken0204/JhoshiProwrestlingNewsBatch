@@ -626,33 +626,33 @@ export class NewsScraper {
   private extractWaveNews($: any): any[] {
     const items: any[] = [];
     
-    // WAVEのニュース構造を解析 - ブログ記事やニュース記事を対象にする
-    $('.blog-entry, .news-entry, .post, article, .entry').each((index: number, element: any) => {
+    console.log('Waveニュース抽出開始');
+    
+    // WAVEの実際のサイト構造に基づく抽出
+    $('.blog_list > div').each((index: number, element: any) => {
       const $item = $(element);
-      const $link = $item.find('a').first();
       
-      if (!$link.length) return;
+      // 日付の抽出（.blog_dateクラスから）
+      const publishedAt = $item.find('.blog_date').first().text().trim();
       
-      let title = $link.text().trim() || $item.find('h1, h2, h3, .title, .entry-title').first().text().trim();
-      const detailUrl = $link.attr('href') || '';
-      const thumbnail = $item.find('img').first().attr('src') || '';
+      // タイトルの抽出（h3 > a > spanから）
+      const $titleSpan = $item.find('h3 a span').first();
+      const title = $titleSpan.text().trim();
       
-      // ナビゲーションメニューをスキップ
-      if (title.match(/^(スケジュール|試合結果|選手紹介|グッズ|HOME|ABOUT|CONTACT)$/)) {
-        return;
-      }
+      // URLの抽出
+      const detailUrl = $item.find('h3 a').first().attr('href') || '';
       
-      // 日付の抽出
-      let publishedAt = $item.find('.date, time, .post-date').first().text().trim();
-      if (!publishedAt) {
-        const dateMatch = $item.text().match(/(\d{4}\/\d{1,2}\/\d{1,2}|\d{4}-\d{1,2}-\d{1,2})/);
-        publishedAt = dateMatch ? dateMatch[1] : '';
-      }
+      // サムネイルの抽出（blog_photo内の画像から）
+      const thumbnail = $item.find('.blog_photo img').first().attr('src') || '';
       
-      // タイトルが有効で、URLが詳細ページの場合のみ追加
-      if (title && detailUrl && title.length > 3 && 
+      console.log(`Wave記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && detailUrl && publishedAt && 
+          title.length > 3 && 
           !detailUrl.includes('javascript:') && 
           !detailUrl.includes('#')) {
+        
         items.push({
           title,
           summary: '',
@@ -663,33 +663,7 @@ export class NewsScraper {
       }
     });
     
-    // より広範囲でニュースを探す
-    if (items.length === 0) {
-      $('a').each((index: number, element: any) => {
-        const $link = $(element);
-        const title = $link.text().trim();
-        const detailUrl = $link.attr('href') || '';
-        
-        // ニュースらしいリンクを検出
-        if (title && detailUrl && 
-            title.length > 10 && 
-            !title.match(/^(スケジュール|試合結果|選手紹介|グッズ|HOME|ABOUT|CONTACT)$/) &&
-            detailUrl.includes('.html') &&
-            !detailUrl.includes('javascript:')) {
-          
-          const dateMatch = $link.parent().text().match(/(\d{4}\/\d{1,2}\/\d{1,2})/);
-          const publishedAt = dateMatch ? dateMatch[1] : '';
-          
-          items.push({
-            title,
-            summary: '',
-            thumbnail: '',
-            publishedAt,
-            detailUrl
-          });
-        }
-      });
-    }
+    console.log(`Wave抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }

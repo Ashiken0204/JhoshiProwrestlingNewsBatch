@@ -50,12 +50,12 @@ export const ORGANIZATIONS: NewsOrganization[] = [
     baseUrl: 'https://pro-w-wave.com',
     newsListUrl: 'https://pro-w-wave.com/',
     selectors: {
-      newsItems: '.news-item, article, li',
-      title: 'a, h3, .title',
-      summary: '.summary, .excerpt',
-      thumbnail: 'img',
-      publishedAt: '.date, time',
-      detailUrl: 'a'
+      newsItems: '.blog_list > div',
+      title: 'h3 a span',
+      summary: '.detail',
+      thumbnail: '.blog_photo img',
+      publishedAt: '.blog_date',
+      detailUrl: 'h3 a'
     }
   },
   {
