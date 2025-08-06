@@ -614,75 +614,56 @@ export class NewsScraper {
     try {
       const isIceRibbon = url.includes('iceribbon.com');
       
-      // アイスリボンサイトの場合、Shift_JISエンコーディング対応
+      // アイスリボンサイトの場合、Azure Functions環境ではPuppeteerのみ使用
       if (isIceRibbon) {
-        console.log(`アイスリボンサイト検出、Shift_JIS対応: ${url}`);
+        console.log(`アイスリボンサイト検出: ${url}`);
         
-        try {
-          const response = await axios.get(url, {
-            timeout: 15000,
-            responseType: 'arraybuffer', // バイナリデータとして取得
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-              'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
-              'Accept-Encoding': 'gzip, deflate, br'
-            }
-          });
-          
-          // Shift_JISからUTF-8に変換（複数の方法を試行）
-          const iconv = require('iconv-lite');
-          let html: string;
+        // Azure Functions環境では、iconv-liteの問題を避けてPuppeteerのみ使用
+        if (process.env.FUNCTIONS_WORKER_RUNTIME) {
+          console.log('Azure Functions環境検出 - Puppeteerで直接処理します');
+          // Axiosをスキップして直接Puppeteerを使用
+        } else {
+          // ローカル環境では従来のAxios + iconv-lite方式を試行
+          console.log('ローカル環境 - Axios + iconv-lite方式を試行');
           
           try {
-            // まずShift_JISで試行
-            html = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
-            console.log(`Shift_JIS変換成功: ${html.length}文字`);
-          } catch (shiftJisError) {
-            try {
-              // EUC-JPで試行
-              html = iconv.decode(Buffer.from(response.data), 'EUC-JP');
-              console.log(`EUC-JP変換成功: ${html.length}文字`);
-            } catch (eucError) {
-              try {
-                // Windows-31Jで試行（Shift_JISの拡張版）
-                html = iconv.decode(Buffer.from(response.data), 'Windows-31J');
-                console.log(`Windows-31J変換成功: ${html.length}文字`);
-              } catch (win31jError) {
-                // UTF-8として処理
-                html = Buffer.from(response.data).toString('utf8');
-                console.log(`UTF-8フォールバック: ${html.length}文字`);
+            const response = await axios.get(url, {
+              timeout: 15000,
+              responseType: 'arraybuffer',
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+                'Accept-Encoding': 'gzip, deflate, br'
               }
-            }
-          }
-          
-          // 文字化けチェック
-          const hasMojibake = html.includes('�') || html.includes('?');
-          if (hasMojibake) {
-            console.log('⚠️ 文字化けが検出されました、Puppeteerで再試行します');
-            throw new Error('文字化けが検出されました');
-          }
-          
-          console.log(`アイスリボンサイト取得成功（エンコーディング変換完了）: ${html.length}文字`);
-          return html;
-          
-        } catch (axiosError) {
-          console.log('アイスリボンサイトaxios失敗、puppeteerで再試行:', axiosError instanceof Error ? axiosError.message : axiosError);
-          
-          // Azure Functions環境での特別な処理
-          if (process.env.FUNCTIONS_WORKER_RUNTIME) {
-            console.log('Azure Functions環境を検出、特別なエラーハンドリングを適用');
+            });
             
-            // タイムアウト時間を延長
-            if (axiosError instanceof Error && axiosError.message.includes('timeout')) {
-              console.log('タイムアウトエラーのため、Puppeteerでリトライします');
+            // iconv-liteを使用した変換（ローカル環境のみ）
+            try {
+              // iconv-liteが利用可能かチェック
+              let iconv;
+              try {
+                iconv = require('iconv-lite');
+              } catch (requireError) {
+                console.log('iconv-liteが利用できません、Puppeteerで処理します');
+                throw new Error('iconv-lite not available');
+              }
+              
+              let html = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
+              
+              // 文字化けチェック
+              if (!html.includes('�')) {
+                console.log(`ローカル環境でShift_JIS変換成功: ${html.length}文字`);
+                return html;
+              } else {
+                console.log('文字化けが検出されました、Puppeteerで再試行します');
+              }
+            } catch (iconvError) {
+              console.log('iconv-lite変換エラー、Puppeteerで再試行:', iconvError instanceof Error ? iconvError.message : iconvError);
             }
             
-            // ネットワークエラーの場合の処理
-            if (axiosError instanceof Error && (axiosError.message.includes('ENOTFOUND') || axiosError.message.includes('ECONNREFUSED'))) {
-              console.log('ネットワークエラーのため、少し待機してからPuppeteerでリトライします');
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
+          } catch (axiosError) {
+            console.log('Axiosエラー、Puppeteerで再試行:', axiosError instanceof Error ? axiosError.message : axiosError);
           }
         }
       } else {
@@ -708,41 +689,63 @@ export class NewsScraper {
       const page = await this.browser!.newPage();
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
       
-      // アイスリボンサイトの場合、特別な設定
+      // アイスリボンサイトの場合、Azure Functions環境に最適化された処理
       if (isIceRibbon) {
-        console.log('Puppeteerでアイスリボンサイト処理（エンコーディング対応）');
+        console.log('Puppeteerでアイスリボンサイト処理（Azure Functions最適化）');
         
-        // ページのエンコーディングを設定
+        // Azure Functions環境でのエンコーディング処理
         await page.setExtraHTTPHeaders({
           'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
           'Accept-Charset': 'Shift_JIS,UTF-8;q=0.7,*;q=0.3'
         });
         
-        // ページを読み込み、エンコーディングを確認
-        const response = await page.goto(url, { 
-          waitUntil: 'domcontentloaded', 
-          timeout: 30000 
-        });
-        
-        if (!response || !response.ok()) {
-          throw new Error(`HTTP ${response?.status()}: ${response?.statusText()}`);
-        }
-        
-        // メタタグからエンコーディングを取得し、必要に応じて設定
-        await page.evaluate(() => {
-          const metaCharset = document.querySelector('meta[charset]') as HTMLMetaElement;
-          const metaHttpEquiv = document.querySelector('meta[http-equiv="Content-Type"]') as HTMLMetaElement;
+        // Azure Functions環境では、より確実なページ読み込み方法を使用
+        try {
+          console.log('アイスリボンページ読み込み開始...');
+          const response = await page.goto(url, { 
+            waitUntil: 'domcontentloaded',
+            timeout: 45000 // Azure Functions環境では時間を長めに設定
+          });
           
-          if (!metaCharset && !metaHttpEquiv) {
-            // Shift_JISのメタタグを追加
-            const meta = document.createElement('meta');
-            meta.setAttribute('charset', 'Shift_JIS');
-            document.head.insertBefore(meta, document.head.firstChild);
+          if (!response || !response.ok()) {
+            const status = response?.status() || 'unknown';
+            const statusText = response?.statusText() || 'unknown error';
+            console.error(`HTTP Error: ${status} - ${statusText}`);
+            throw new Error(`HTTP ${status}: ${statusText}`);
           }
-        });
-        
-        // 少し待ってからコンテンツを取得
-        await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          console.log(`HTTP ${response.status()}: ページ読み込み成功`);
+          
+          // ページが完全に読み込まれるまで少し待機
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // エンコーディングの確認と修正
+          await page.evaluate(() => {
+            // 既存のメタタグを確認
+            const existingCharset = document.querySelector('meta[charset]') as HTMLMetaElement;
+            const existingHttpEquiv = document.querySelector('meta[http-equiv="Content-Type"]') as HTMLMetaElement;
+            
+            console.log('現在のエンコーディング設定:', {
+              charset: existingCharset?.getAttribute('charset'),
+              httpEquiv: existingHttpEquiv?.getAttribute('content')
+            });
+            
+            // 必要に応じてエンコーディングを設定
+            if (!existingCharset && !existingHttpEquiv) {
+              const meta = document.createElement('meta');
+              meta.setAttribute('charset', 'Shift_JIS');
+              document.head.insertBefore(meta, document.head.firstChild);
+              console.log('Shift_JISメタタグを追加しました');
+            }
+          });
+          
+          // DOM処理完了まで待機
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+        } catch (gotoError) {
+          console.error('アイスリボンページ読み込みエラー:', gotoError);
+          throw gotoError;
+        }
       } else {
         await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
       }
@@ -754,6 +757,33 @@ export class NewsScraper {
       return html;
     } catch (error) {
       console.error(`ページ取得エラー: ${url}`, error);
+      
+      // Azure Functions環境での詳細なエラー情報
+      const isIceRibbonSite = url.includes('iceribbon.com');
+      if (process.env.FUNCTIONS_WORKER_RUNTIME && isIceRibbonSite) {
+        console.error('=== Azure Functions アイスリボンエラー詳細 ===');
+        console.error('エラータイプ:', error instanceof Error ? error.constructor.name : typeof error);
+        console.error('エラーメッセージ:', error instanceof Error ? error.message : String(error));
+        console.error('スタックトレース:', error instanceof Error ? error.stack : 'なし');
+        
+        // 一般的なAzure Functionsエラーの診断
+        if (error instanceof Error) {
+          if (error.message.includes('iconv')) {
+            console.error('🔍 iconv-lite関連エラー: ライブラリの互換性問題の可能性');
+          }
+          if (error.message.includes('timeout')) {
+            console.error('🔍 タイムアウトエラー: ネットワークまたは処理時間の問題');
+          }
+          if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+            console.error('🔍 ネットワークエラー: DNS解決またはサーバー接続の問題');
+          }
+          if (error.message.includes('Protocol error')) {
+            console.error('🔍 Puppeteerプロトコルエラー: ブラウザ通信の問題');
+          }
+        }
+        console.error('=======================================');
+      }
+      
       return null;
     }
   }
