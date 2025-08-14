@@ -424,6 +424,9 @@ export class NewsScraper {
       case 'marvelous':
         return this.extractMarvelousNews($);
       
+      case 'purej':
+        return this.extractPurejNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -1155,6 +1158,59 @@ export class NewsScraper {
     });
     
     console.log(`マーベラス抽出結果: ${items.length}件`);
+    
+    return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractPurejNews($: any): any[] {
+    const items: any[] = [];
+    
+    console.log('PURE-Jニュース抽出開始');
+    
+    // #newsセクション内のニュース記事要素から抽出
+    $('#news h3.elementor-heading-title').each((index: number, element: any) => {
+      const $item = $(element);
+      
+      // タイトルの抽出
+      const title = $item.text().trim();
+      
+      // 日付の抽出（親要素からtime要素を探す）
+      let publishedAt = '';
+      const $parent = $item.closest('.elementor-widget-wrap');
+      if ($parent.length > 0) {
+        publishedAt = $parent.find('time').first().text().trim();
+      }
+      
+      // 日付が見つからない場合は、同じセクション内のtime要素を探す
+      if (!publishedAt) {
+        const $section = $item.closest('#news');
+        if ($section.length > 0) {
+          const timeElements = $section.find('time');
+          if (timeElements.length > index) {
+            publishedAt = $(timeElements[index]).text().trim();
+          }
+        }
+      }
+      
+      // 詳細URLはないので、タイトルをそのまま使用
+      const detailUrl = `https://pure-j.jp/news/${index + 1}`;
+      
+      console.log(`PURE-J記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && title.length > 3) {
+        
+        items.push({
+          title,
+          summary: '',
+          thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`PURE-J抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }

@@ -156,5 +156,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.entry-meta',
       detailUrl: 'h1.media-heading.entry-title a'
     }
+  },
+  {
+    name: 'purej',
+    displayName: 'PURE-J',
+    baseUrl: 'https://pure-j.jp',
+    newsListUrl: 'https://pure-j.jp/#news',
+    selectors: {
+      newsItems: '#news h3.elementor-heading-title',
+      title: 'h3.elementor-heading-title',
+      summary: '.excerpt, .summary, p',
+      thumbnail: 'img',
+      publishedAt: 'time',
+      detailUrl: 'h3.elementor-heading-title'
+    }
   }
 ];
