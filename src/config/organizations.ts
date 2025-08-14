@@ -128,5 +128,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: 'article.item-acvinfo',
       detailUrl: 'article.item-acvinfo'
     }
+  },
+  {
+    name: 'marigold',
+    displayName: 'マリーゴールド',
+    baseUrl: 'https://dsf-marigold.com',
+    newsListUrl: 'https://dsf-marigold.com/blogs/',
+    selectors: {
+      newsItems: '.c-post1.c-post1--diff',
+      title: '.c-post1__title',
+      summary: '.c-post1__text',
+      thumbnail: 'img',
+      publishedAt: '.c-post1__box',
+      detailUrl: '.c-post1__title'
+    }
   }
 ];

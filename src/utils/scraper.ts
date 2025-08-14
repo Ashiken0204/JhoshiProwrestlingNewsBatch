@@ -418,6 +418,9 @@ export class NewsScraper {
       case 'seadlinnng':
         return await this.extractSeadlinnngNews($);
       
+      case 'marigold':
+        return this.extractMarigoldNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -1051,6 +1054,58 @@ export class NewsScraper {
     });
     
     console.log(`SEAdLINNNG抽出結果: ${items.length}件`);
+    
+    return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractMarigoldNews($: any): any[] {
+    const items: any[] = [];
+    
+    console.log('マリーゴールドニュース抽出開始');
+    
+    // ニュース記事要素から抽出
+    $('.c-post1.c-post1--diff').each((index: number, element: any) => {
+      const $item = $(element);
+      
+      // タイトルの抽出
+      const title = $item.find('.c-post1__title').first().text().trim();
+      
+      // URLの抽出
+      const detailUrl = $item.find('.c-post1__title').first().attr('href') || '';
+      
+      // 日付の抽出
+      let publishedAt = $item.find('.c-post1__box').first().text().trim();
+      // 日付から余分な文字を除去
+      publishedAt = publishedAt.replace(/\s+/g, ' ').replace(/\s*(NEWS|EVENT)\s*$/i, '').trim();
+      
+      // サムネイルの抽出（画像を優先）
+      let thumbnail = $item.find('img').first().attr('src') || '';
+      if (thumbnail && !thumbnail.startsWith('http')) {
+        thumbnail = `https://dsf-marigold.com${thumbnail}`;
+      }
+      
+      // 概要の抽出
+      const summary = $item.find('.c-post1__text').first().text().trim();
+      
+      console.log(`マリーゴールド記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}", サムネイル="${thumbnail}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && detailUrl && 
+          title.length > 3 && 
+          !detailUrl.includes('javascript:') && 
+          !detailUrl.includes('#')) {
+        
+        items.push({
+          title,
+          summary,
+          thumbnail: thumbnail || '/images/default-thumbnail.jpg',
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`マリーゴールド抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }
