@@ -238,6 +238,81 @@ export class NewsScraper {
     }
   }
 
+  private async getSeadlinnngDetailUrls(): Promise<Map<string, string>> {
+    if (!this.seleniumDriver) {
+      await this.initializeSelenium();
+    }
+    
+    if (!this.seleniumDriver) {
+      throw new Error('Seleniumドライバーが初期化できませんでした');
+    }
+    
+    const detailUrls = new Map<string, string>();
+    
+    try {
+      console.log('SEAdLINNNG詳細URL取得開始');
+      
+      // ニュースページにアクセス
+      await this.seleniumDriver.get('https://seadlinnng.com/news');
+      await this.seleniumDriver.wait(until.elementLocated(By.tagName('body')), 10000);
+      await this.seleniumDriver.sleep(3000);
+      
+      // 各記事を順番にクリックして詳細URLを取得
+      for (let i = 0; i < 10; i++) {
+        try {
+          // 毎回記事要素を再取得（StaleElementReferenceErrorを回避）
+          const articles = await this.seleniumDriver.findElements(By.css('article.item-acvinfo'));
+          if (articles.length <= i) {
+            console.log(`記事${i + 1}が見つかりません。終了します。`);
+            break;
+          }
+          
+          // 記事のテキストを取得（キーとして使用）
+          const articleText = await articles[i].getText();
+          const titleMatch = articleText.match(/【(.+?)】/);
+          const title = titleMatch ? titleMatch[1] : articleText.substring(0, 50);
+          
+          console.log(`記事${i + 1}をクリック中: "${title}"`);
+          
+          // 記事をクリック
+          await articles[i].click();
+          await this.seleniumDriver.sleep(2000);
+          
+          // 新しいURLを取得
+          const detailUrl = await this.seleniumDriver.getCurrentUrl();
+          
+          if (detailUrl !== 'https://seadlinnng.com/news') {
+            detailUrls.set(title, detailUrl);
+            console.log(`詳細URL取得: "${title}" -> ${detailUrl}`);
+          }
+          
+          // ニュースページに戻る
+          await this.seleniumDriver.get('https://seadlinnng.com/news');
+          await this.seleniumDriver.wait(until.elementLocated(By.tagName('body')), 10000);
+          await this.seleniumDriver.sleep(2000);
+          
+        } catch (error) {
+          console.error(`記事${i + 1}の詳細URL取得エラー:`, error);
+          // エラーが発生した場合もニュースページに戻る
+          try {
+            await this.seleniumDriver.get('https://seadlinnng.com/news');
+            await this.seleniumDriver.wait(until.elementLocated(By.tagName('body')), 10000);
+            await this.seleniumDriver.sleep(2000);
+          } catch (backError) {
+            console.error('ニュースページへの復帰エラー:', backError);
+          }
+        }
+      }
+      
+      console.log(`SEAdLINNNG詳細URL取得完了: ${detailUrls.size}件`);
+      return detailUrls;
+      
+    } catch (error) {
+      console.error('SEAdLINNNG詳細URL取得エラー:', error);
+      return detailUrls;
+    }
+  }
+
     async scrapeNews(organization: NewsOrganization): Promise<ScrapingResult> {
     try {
       console.log(`スクレイピング開始: ${organization.displayName}`);
@@ -341,7 +416,7 @@ export class NewsScraper {
         return this.extractOzAcademyNews($);
       
       case 'seadlinnng':
-        return this.extractSeadlinnngNews($);
+        return await this.extractSeadlinnngNews($);
       
       default:
         return this.extractGenericNews($, organization);
@@ -920,10 +995,13 @@ export class NewsScraper {
     return items.slice(0, 10); // 最大10件に制限
   }
 
-  private extractSeadlinnngNews($: any): any[] {
+  private async extractSeadlinnngNews($: any): Promise<any[]> {
     const items: any[] = [];
     
     console.log('SEAdLINNNGニュース抽出開始');
+    
+    // 詳細URLを取得
+    const detailUrls = await this.getSeadlinnngDetailUrls();
     
     // article.item-acvinfo要素からニュース記事を抽出
     $('article.item-acvinfo').each((index: number, element: any) => {
@@ -942,8 +1020,17 @@ export class NewsScraper {
         title = title.replace(/^[A-Z]+\s+/, '').trim();
       }
       
-      // URLは現在のページのURLを使用（詳細ページへのリンクがないため）
-      const detailUrl = 'https://seadlinnng.com/news';
+      // タイトルから詳細URLを検索
+      let detailUrl = 'https://seadlinnng.com/news'; // デフォルト
+      if (title) {
+        // タイトルマッチングで詳細URLを検索
+        for (const [urlTitle, url] of detailUrls.entries()) {
+          if (title.includes(urlTitle) || urlTitle.includes(title.substring(0, 20))) {
+            detailUrl = url;
+            break;
+          }
+        }
+      }
       
       console.log(`SEAdLINNNG記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
       
