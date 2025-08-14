@@ -1192,8 +1192,20 @@ export class NewsScraper {
         }
       }
       
-      // 詳細URLはないので、タイトルをそのまま使用
-      const detailUrl = `https://pure-j.jp/news/${index + 1}`;
+      // 詳細URLをdata-ha-element-link属性から取得
+      let detailUrl = $item.attr('data-ha-element-link') || '';
+      if (!detailUrl) {
+        // 親要素からも探す
+        const $parent = $item.closest('.elementor-widget-wrap');
+        if ($parent.length > 0) {
+          detailUrl = $parent.find('[data-ha-element-link]').first().attr('data-ha-element-link') || '';
+        }
+      }
+      
+      // リンクが見つからない場合はデフォルトURL
+      if (!detailUrl) {
+        detailUrl = `https://pure-j.jp/news/${index + 1}`;
+      }
       
       console.log(`PURE-J記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
       
