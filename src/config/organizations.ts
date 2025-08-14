@@ -170,5 +170,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: 'time',
       detailUrl: '[data-ha-element-link]'
     }
+  },
+  {
+    name: 'gokigenpro',
+    displayName: 'ゴキゲンプロレス',
+    baseUrl: 'https://gokigenpro.com',
+    newsListUrl: 'https://gokigenpro.com/category/news/',
+    selectors: {
+      newsItems: 'article',
+      title: 'h2.entry-card-title',
+      summary: '.entry-card-snippet',
+      thumbnail: '.entry-card-thumb-image',
+      publishedAt: '.entry-date',
+      detailUrl: 'article'
+    }
   }
 ];

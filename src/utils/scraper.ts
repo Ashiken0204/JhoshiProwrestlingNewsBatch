@@ -424,8 +424,10 @@ export class NewsScraper {
       case 'marvelous':
         return this.extractMarvelousNews($);
       
-      case 'purej':
-        return this.extractPurejNews($);
+              case 'purej':
+          return this.extractPurejNews($);
+        case 'gokigenpro':
+          return this.extractGokigenproNews($);
       
       default:
         return this.extractGenericNews($, organization);
@@ -1225,6 +1227,49 @@ export class NewsScraper {
     console.log(`PURE-J抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractGokigenproNews($: any): any[] {
+    const items: any[] = [];
+    console.log('ゴキゲンプロレスニュース抽出開始');
+    
+    $('article').each((index: number, element: any) => {
+      const $item = $(element);
+      const title = $item.find('h2.entry-card-title').first().text().trim();
+      
+      // 詳細URLは親のa要素から取得
+      let detailUrl = '';
+      const $parentLink = $item.closest('a.entry-card-wrap');
+      if ($parentLink.length > 0) {
+        detailUrl = $parentLink.attr('href') || '';
+      }
+      
+      let publishedAt = $item.find('.entry-date').first().text().trim();
+      publishedAt = publishedAt.replace(/\s+/g, ' ').trim();
+      
+      // サムネイル画像を取得
+      let thumbnail = $item.find('.entry-card-thumb-image').first().attr('src') || '';
+      if (thumbnail && !thumbnail.startsWith('http')) {
+        thumbnail = `https://gokigenpro.com${thumbnail}`;
+      }
+      
+      const summary = $item.find('.entry-card-snippet').first().text().trim();
+      
+      console.log(`ゴキゲンプロレス記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}", サムネイル="${thumbnail}"`);
+      
+      if (title && detailUrl && title.length > 3 && !detailUrl.includes('javascript:') && !detailUrl.includes('#')) {
+        items.push({
+          title,
+          summary,
+          thumbnail: thumbnail || '/images/default-thumbnail.jpg',
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`ゴキゲンプロレス抽出結果: ${items.length}件`);
+    return items.slice(0, 10);
   }
 
   private extractGenericNews($: any, organization: NewsOrganization): any[] {
