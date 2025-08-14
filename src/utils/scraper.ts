@@ -13,17 +13,6 @@ export class NewsScraper {
   private browser: Browser | null = null;
   private seleniumDriver: WebDriver | null = null;
 
-  // ランダムなデフォルト画像を選択する関数
-  private getRandomDefaultThumbnail(): string {
-    const defaultImages = [
-      '/images/default-thumbnail1.jpg',
-      '/images/default-thumbnail2.jpg',
-      '/images/default-thumbnail3.jpg',
-      '/images/default-thumbnail4.jpg'
-    ];
-    const randomIndex = Math.floor(Math.random() * defaultImages.length);
-    return defaultImages[randomIndex];
-  }
 
   async initialize(): Promise<void> {
     try {
@@ -645,7 +634,7 @@ export class NewsScraper {
                   items.push({
             title: title.replace(/\s+/g, ' ').trim(),
             summary: summary || '',
-            thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+            thumbnail: thumbnail || "",
             publishedAt: publishedAt || new Date().toISOString(),
             detailUrl: fullDetailUrl
           });
@@ -680,7 +669,7 @@ export class NewsScraper {
           items.push({
             title: title.replace(/\s+/g, ' ').trim(),
             summary: '',
-            thumbnail: $item.find('img').first().attr('src') || this.getRandomDefaultThumbnail(),
+            thumbnail: $item.find('img').first().attr('src') || "",
             publishedAt: publishedAt || new Date().toISOString(),
             detailUrl: fullDetailUrl
           });
@@ -768,7 +757,7 @@ export class NewsScraper {
         items.push({
           title: title.replace(/\s+/g, ' ').trim(), // 余分な空白を除去
           summary: '', // 公式サイトでは概要は別途取得が必要
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt,
           detailUrl
         });
@@ -803,7 +792,7 @@ export class NewsScraper {
           items.push({
             title: title.replace(/\s+/g, ' ').trim(),
             summary: '',
-            thumbnail: this.getRandomDefaultThumbnail(),
+            thumbnail: "",
             publishedAt,
             detailUrl
           });
@@ -863,7 +852,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: '',
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt,
           detailUrl
         });
@@ -914,7 +903,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt,
           detailUrl
         });
@@ -962,7 +951,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt: publishedAt || new Date().toISOString().split('T')[0], // 日付がない場合は今日の日付を使用
           detailUrl
         });
@@ -1010,7 +999,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1122,7 +1111,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1282,7 +1271,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1341,12 +1330,7 @@ export class NewsScraper {
           if ($actualImg.length > 0) {
             thumbnail = $actualImg.attr('src') || '';
           }
-        }
-        
-        // それでも見つからない場合はデフォルト画像を使用
-        if (!thumbnail || thumbnail.includes('data:image/gif;base64')) {
-          thumbnail = this.getRandomDefaultThumbnail();
-        }
+        }        
       }
       
       // 概要を取得
@@ -1358,7 +1342,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+          thumbnail: thumbnail || "",
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
