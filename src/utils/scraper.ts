@@ -421,6 +421,9 @@ export class NewsScraper {
       case 'marigold':
         return this.extractMarigoldNews($);
       
+      case 'marvelous':
+        return this.extractMarvelousNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -1106,6 +1109,52 @@ export class NewsScraper {
     });
     
     console.log(`マリーゴールド抽出結果: ${items.length}件`);
+    
+    return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractMarvelousNews($: any): any[] {
+    const items: any[] = [];
+    
+    console.log('マーベラスニュース抽出開始');
+    
+    // ニュース記事要素から抽出
+    $('article.media').each((index: number, element: any) => {
+      const $item = $(element);
+      
+      // タイトルの抽出
+      const title = $item.find('h1.media-heading.entry-title a').first().text().trim();
+      
+      // URLの抽出
+      const detailUrl = $item.find('h1.media-heading.entry-title a').first().attr('href') || '';
+      
+      // 日付の抽出
+      let publishedAt = $item.find('.entry-meta').first().text().trim();
+      // 日付から余分な文字を除去
+      publishedAt = publishedAt.replace(/\s+/g, ' ').replace(/\/\s*最終更新日時\s*:\s*\d{4}年\d{1,2}月\d{1,2}日\s*/g, '').replace(/\s*marvelous\s*NEWS\s*/g, '').trim();
+      
+      // 概要の抽出
+      const summary = $item.find('.entry-summary, p').first().text().trim();
+      
+      console.log(`マーベラス記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && detailUrl && 
+          title.length > 3 && 
+          !detailUrl.includes('javascript:') && 
+          !detailUrl.includes('#')) {
+        
+        items.push({
+          title,
+          summary,
+          thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`マーベラス抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }

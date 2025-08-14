@@ -142,5 +142,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.c-post1__box',
       detailUrl: '.c-post1__title'
     }
+  },
+  {
+    name: 'marvelous',
+    displayName: 'マーベラス',
+    baseUrl: 'http://www.marvelcompany.co.jp',
+    newsListUrl: 'http://www.marvelcompany.co.jp/marvelous/',
+    selectors: {
+      newsItems: 'article.media',
+      title: 'h1.media-heading.entry-title a',
+      summary: '.entry-summary, p',
+      thumbnail: 'img',
+      publishedAt: '.entry-meta',
+      detailUrl: 'h1.media-heading.entry-title a'
+    }
   }
 ];
