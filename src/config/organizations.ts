@@ -198,5 +198,20 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.c-postTimes__posted.icon-posted',
       detailUrl: 'a'
     }
+  },
+  {
+    name: 'evolution',
+    displayName: 'Evolution女子',
+    baseUrl: 'https://evolutionofficialfc.com',
+    newsListUrl: 'https://evolutionofficialfc.com/news',
+    useSelenium: true,
+    selectors: {
+      newsItems: '.news__list .news-li',
+      title: '.news-li__item__subject',
+      summary: '.news-li__item__subject',
+      thumbnail: 'img',
+      publishedAt: '.news-li__item__infom',
+      detailUrl: 'a'
+    }
   }
 ];
