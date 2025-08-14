@@ -12,16 +12,31 @@ export async function getNews(context: any, req: any): Promise<void> {
     // クエリパラメータの取得
     const organization = url.searchParams.get('organization');
     const limit = parseInt(url.searchParams.get('limit') || '20');
+    const page = parseInt(url.searchParams.get('page') || '1');
     
     let newsItems;
+    let totalCount = 0;
     
     if (organization && organization !== 'all') {
       // 特定の団体のニュースを取得
       newsItems = await storage.getNewsByOrganization(organization);
-      newsItems = newsItems.slice(0, limit);
+      totalCount = newsItems.length;
+      
+      // ページング処理
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      newsItems = newsItems.slice(startIndex, endIndex);
     } else {
       // 全団体の最新ニュースを取得
-      newsItems = await storage.getLatestNews(limit);
+      if (limit >= 1000) {
+        // 全件取得の場合
+        newsItems = await storage.getLatestNews(1000);
+        totalCount = newsItems.length;
+      } else {
+        // ページング付きで取得
+        newsItems = await storage.getLatestNews(limit);
+        totalCount = newsItems.length;
+      }
     }
     
     // レスポンスの作成
@@ -29,6 +44,9 @@ export async function getNews(context: any, req: any): Promise<void> {
       success: true,
       data: newsItems,
       count: newsItems.length,
+      totalCount: totalCount,
+      page: page,
+      totalPages: Math.ceil(totalCount / limit),
       timestamp: new Date().toISOString()
     };
     
