@@ -14,6 +14,7 @@ export interface NewsOrganization {
   displayName: string;
   baseUrl: string;
   newsListUrl: string;
+  useSelenium?: boolean; // Seleniumを使用して動的コンテンツを取得するかどうか
   selectors: {
     newsItems: string;
     title: string;

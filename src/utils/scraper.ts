@@ -4,11 +4,14 @@ import axios from 'axios';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as glob from 'glob';
+import { Builder, By, until, WebDriver } from 'selenium-webdriver';
+import * as chrome from 'selenium-webdriver/chrome.js';
 import { NewsItem, NewsOrganization, ScrapingResult } from '../types/news';
 import { generateId, formatDate, isValidUrl } from './helpers';
 
 export class NewsScraper {
   private browser: Browser | null = null;
+  private seleniumDriver: WebDriver | null = null;
 
   async initialize(): Promise<void> {
     try {
@@ -142,6 +145,96 @@ export class NewsScraper {
   async close(): Promise<void> {
     if (this.browser) {
       await this.browser.close();
+      this.browser = null;
+    }
+    if (this.seleniumDriver) {
+      await this.seleniumDriver.quit();
+      this.seleniumDriver = null;
+    }
+  }
+
+  private async initializeSelenium(): Promise<void> {
+    try {
+      console.log('Seleniumを初期化中...');
+      
+      const options = new chrome.Options();
+      options.addArguments('--headless');
+      options.addArguments('--no-sandbox');
+      options.addArguments('--disable-dev-shm-usage');
+      options.addArguments('--disable-gpu');
+      options.addArguments('--disable-extensions');
+      options.addArguments('--disable-background-timer-throttling');
+      options.addArguments('--disable-backgrounding-occluded-windows');
+      options.addArguments('--disable-renderer-backgrounding');
+      options.addArguments('--disable-ipc-flooding-protection');
+      options.addArguments('--disable-hang-monitor');
+      options.addArguments('--disable-client-side-phishing-detection');
+      options.addArguments('--disable-popup-blocking');
+      options.addArguments('--disable-default-apps');
+      options.addArguments('--disable-prompt-on-repost');
+      options.addArguments('--disable-sync');
+      options.addArguments('--metrics-recording-only');
+      options.addArguments('--no-default-browser-check');
+      options.addArguments('--no-first-run');
+      options.addArguments('--no-zygote');
+      options.addArguments('--disable-accelerated-2d-canvas');
+      options.addArguments('--disable-web-security');
+      options.addArguments('--allow-running-insecure-content');
+      options.addArguments('--disable-features=VizDisplayCompositor');
+      options.addArguments('--disable-software-rasterizer');
+      options.addArguments('--disable-background-networking');
+      options.addArguments('--disable-extensions');
+      options.addArguments('--disable-sync');
+      options.addArguments('--disable-translate');
+      options.addArguments('--hide-scrollbars');
+      options.addArguments('--mute-audio');
+      options.addArguments('--safebrowsing-disable-auto-update');
+      options.addArguments('--ignore-certificate-errors');
+      options.addArguments('--ignore-ssl-errors');
+      options.addArguments('--ignore-certificate-errors-spki-list');
+      options.addArguments('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+      
+      this.seleniumDriver = await new Builder()
+        .forBrowser('chrome')
+        .setChromeOptions(options)
+        .build();
+      
+      console.log('Selenium初期化完了');
+    } catch (error) {
+      console.error('Selenium初期化エラー:', error);
+      this.seleniumDriver = null;
+    }
+  }
+
+  private async fetchDynamicContent(url: string): Promise<string> {
+    if (!this.seleniumDriver) {
+      await this.initializeSelenium();
+    }
+    
+    if (!this.seleniumDriver) {
+      throw new Error('Seleniumドライバーが初期化できませんでした');
+    }
+    
+    try {
+      console.log(`Seleniumで動的コンテンツを取得中: ${url}`);
+      
+      await this.seleniumDriver.get(url);
+      
+      // ページが完全に読み込まれるまで待機
+      await this.seleniumDriver.wait(until.elementLocated(By.tagName('body')), 10000);
+      
+      // JavaScriptの実行完了を待機
+      await this.seleniumDriver.sleep(3000);
+      
+      // ページのHTMLを取得
+      const pageSource = await this.seleniumDriver.getPageSource();
+      
+      console.log(`Seleniumで動的コンテンツ取得成功: ${pageSource.length}文字`);
+      
+      return pageSource;
+    } catch (error) {
+      console.error('Seleniumで動的コンテンツ取得エラー:', error);
+      throw error;
     }
   }
 
@@ -150,7 +243,7 @@ export class NewsScraper {
       console.log(`スクレイピング開始: ${organization.displayName}`);
       
       // ページの取得
-      const html = await this.fetchPageContent(organization.newsListUrl);
+      const html = await this.fetchPageContent(organization.newsListUrl, organization);
       if (!html) {
         throw new Error('ページの取得に失敗しました');
       }
@@ -247,8 +340,8 @@ export class NewsScraper {
       case 'oz_academy':
         return this.extractOzAcademyNews($);
       
-      // case 'seadlinnng':
-      //   return this.extractSeadlinnngNews($);
+      case 'seadlinnng':
+        return this.extractSeadlinnngNews($);
       
       default:
         return this.extractGenericNews($, organization);
@@ -832,33 +925,37 @@ export class NewsScraper {
     
     console.log('SEAdLINNNGニュース抽出開始');
     
-    // ニュース記事要素から抽出
-    $('.news-item, article, .post').each((index: number, element: any) => {
+    // article.item-acvinfo要素からニュース記事を抽出
+    $('article.item-acvinfo').each((index: number, element: any) => {
       const $item = $(element);
+      const text = $item.text().trim();
       
-      // タイトルの抽出
-      const title = $item.find('h2 a, h3 a, .title a').first().text().trim();
+      // テキストから日付とタイトルを抽出
+      const dateMatch = text.match(/(\d{4}\.\d{2}\.\d{2})/);
+      const publishedAt = dateMatch ? dateMatch[1] : '';
       
-      // URLの抽出
-      const detailUrl = $item.find('h2 a, h3 a, .title a').first().attr('href') || '';
+      // 日付以降の部分をタイトルとして抽出
+      let title = '';
+      if (dateMatch) {
+        title = text.substring(text.indexOf(dateMatch[1]) + dateMatch[1].length).trim();
+        // カテゴリ情報（OTHERS等）を除去
+        title = title.replace(/^[A-Z]+\s+/, '').trim();
+      }
       
-      // 日付の抽出
-      const publishedAt = $item.find('.date, .published, time').first().text().trim();
-      
-      // 概要の抽出
-      const summary = $item.find('.excerpt, .summary, p').first().text().trim();
+      // URLは現在のページのURLを使用（詳細ページへのリンクがないため）
+      const detailUrl = 'https://seadlinnng.com/news';
       
       console.log(`SEAdLINNNG記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
       
       // 有効なデータの場合のみ追加
-      if (title && detailUrl && 
+      if (title && publishedAt && 
           title.length > 3 && 
-          !detailUrl.includes('javascript:') && 
-          !detailUrl.includes('#')) {
+          !title.includes('javascript:') && 
+          !title.includes('#')) {
         
         items.push({
           title,
-          summary,
+          summary: '',
           thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
@@ -898,9 +995,16 @@ export class NewsScraper {
     return items;
   }
 
-  private async fetchPageContent(url: string): Promise<string | null> {
+  private async fetchPageContent(url: string, organization?: NewsOrganization): Promise<string | null> {
     try {
       const isIceRibbon = url.includes('iceribbon.com');
+      const isSeadlinnng = organization?.name === 'seadlinnng';
+      
+      // SEAdLINNNGの場合はSeleniumを使用して動的コンテンツを取得
+      if (isSeadlinnng && organization?.useSelenium) {
+        console.log('SEAdLINNNG検出: Seleniumで動的コンテンツを取得します');
+        return await this.fetchDynamicContent(url);
+      }
       
       // アイスリボンサイトの場合、Azure Functions環境ではより堅牢な処理
       if (isIceRibbon) {
