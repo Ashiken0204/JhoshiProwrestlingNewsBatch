@@ -1361,109 +1361,37 @@ export class NewsScraper {
     const items: any[] = [];
     console.log('Evolution女子ニュース抽出開始');
     
-    // 動的コンテンツの場合はSeleniumを使用
-    if (this.browser) {
-      try {
-        const page = await this.browser.newPage();
-        await page.setViewport({ width: 1280, height: 720 });
-        
-        const url = 'https://evolutionofficialfc.com/news';
-        console.log(`URL: ${url}`);
-        
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-        console.log('ページを読み込みました');
-        
-        // 少し待機して動的コンテンツが読み込まれるのを待つ
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // .news__list .news-li要素を取得
-        const newsItems = await page.$$('.news__list .news-li');
-        console.log(`ニュース要素数: ${newsItems.length}`);
-        
-        for (let i = 0; i < Math.min(newsItems.length, 10); i++) {
-          const item = newsItems[i];
-          
-          try {
-            // タイトルを取得
-            const titleElement = await item.$('.news-li__item__subject');
-            const title = titleElement ? await titleElement.evaluate(el => el.textContent?.trim() || '') : '';
-            
-            // ファンクラブ会員限定のニュースをスキップ
-            if (title.includes('ファンクラブ会員限定')) {
-              console.log(`Evolution記事${i + 1}: ファンクラブ会員限定をスキップ`);
-              continue;
-            }
-            
-            // 日付を取得
-            const dateElement = await item.$('.news-li__item__infom');
-            const publishedAt = dateElement ? await dateElement.evaluate(el => el.textContent?.trim() || '') : '';
-            
-            // 詳細URLを取得
-            const linkElement = await item.$('a');
-            let detailUrl = '';
-            if (linkElement) {
-              detailUrl = await linkElement.evaluate(el => el.getAttribute('href') || '');
-              if (detailUrl && !detailUrl.startsWith('http')) {
-                detailUrl = `https://evolutionofficialfc.com${detailUrl}`;
-              }
-            }
-            
-            console.log(`Evolution記事${i + 1}: タイトル="${title}", 日付="${publishedAt}", URL="${detailUrl}"`);
-            
-            if (title && title.length > 3 && detailUrl && !detailUrl.includes('javascript:') && !detailUrl.includes('#')) {
-              items.push({
-                title,
-                summary: title, // 概要はタイトルと同じ
-                thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
-                publishedAt: publishedAt || new Date().toISOString().split('T')[0],
-                detailUrl
-              });
-            }
-          } catch (error) {
-            console.log(`Evolution記事${i + 1}の処理中にエラー:`, error);
-          }
-        }
-        
-        await page.close();
-        
-      } catch (error) {
-        console.error('Evolution女子Selenium抽出中にエラー:', error);
-      }
-    } else {
-      console.log('⚠️ Seleniumが利用できません。静的なHTMLから抽出を試行します。');
+    // .news__list .news-li要素からニュース記事を抽出
+    $('.news__list .news-li').each((index: number, element: any) => {
+      const $item = $(element);
       
-      // 静的なHTMLから抽出を試行
-      $('.news__list .news-li').each((index: number, element: any) => {
-        const $item = $(element);
-        
-        const title = $item.find('.news-li__item__subject').first().text().trim();
-        
-        // ファンクラブ会員限定のニュースをスキップ
-        if (title.includes('ファンクラブ会員限定')) {
-          console.log(`Evolution記事${index + 1}: ファンクラブ会員限定をスキップ`);
-          return;
-        }
-        
-        const publishedAt = $item.find('.news-li__item__infom').first().text().trim();
-        let detailUrl = $item.find('a').first().attr('href') || '';
-        
-        if (detailUrl && !detailUrl.startsWith('http')) {
-          detailUrl = `https://evolutionofficialfc.com${detailUrl}`;
-        }
-        
-        console.log(`Evolution記事${index + 1}: タイトル="${title}", 日付="${publishedAt}", URL="${detailUrl}"`);
-        
-        if (title && title.length > 3 && detailUrl && !detailUrl.includes('javascript:') && !detailUrl.includes('#')) {
-          items.push({
-            title,
-            summary: title,
-            thumbnail: '/images/default-thumbnail.jpg',
-            publishedAt: publishedAt || new Date().toISOString().split('T')[0],
-            detailUrl
-          });
-        }
-      });
-    }
+      const title = $item.find('.news-li__item__subject').first().text().trim();
+      
+      // ファンクラブ会員限定のニュースをスキップ
+      if (title.includes('ファンクラブ会員限定')) {
+        console.log(`Evolution記事${index + 1}: ファンクラブ会員限定をスキップ`);
+        return;
+      }
+      
+      const publishedAt = $item.find('.news-li__item__infom').first().text().trim();
+      let detailUrl = $item.find('a').first().attr('href') || '';
+      
+      if (detailUrl && !detailUrl.startsWith('http')) {
+        detailUrl = `https://evolutionofficialfc.com${detailUrl}`;
+      }
+      
+      console.log(`Evolution記事${index + 1}: タイトル="${title}", 日付="${publishedAt}", URL="${detailUrl}"`);
+      
+      if (title && title.length > 3 && detailUrl && !detailUrl.includes('javascript:') && !detailUrl.includes('#')) {
+        items.push({
+          title,
+          summary: title,
+          thumbnail: '/images/default-thumbnail.jpg',
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
     
     console.log(`Evolution抽出結果: ${items.length}件`);
     return items.slice(0, 10);
@@ -1500,10 +1428,17 @@ export class NewsScraper {
     try {
       const isIceRibbon = url.includes('iceribbon.com');
       const isSeadlinnng = organization?.name === 'seadlinnng';
+      const isEvolution = organization?.name === 'evolution';
       
       // SEAdLINNNGの場合はSeleniumを使用して動的コンテンツを取得
       if (isSeadlinnng && organization?.useSelenium) {
         console.log('SEAdLINNNG検出: Seleniumで動的コンテンツを取得します');
+        return await this.fetchDynamicContent(url);
+      }
+      
+      // Evolution女子の場合はSeleniumを使用して動的コンテンツを取得
+      if (isEvolution && organization?.useSelenium) {
+        console.log('Evolution女子検出: Seleniumで動的コンテンツを取得します');
         return await this.fetchDynamicContent(url);
       }
       
