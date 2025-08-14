@@ -210,7 +210,7 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       title: '.news-li__item__subject',
       summary: '.news-li__item__subject',
       thumbnail: 'img',
-      publishedAt: '.news-li__item__infom',
+      publishedAt: '.date-dot.news-li__item__date',
       detailUrl: 'a'
     }
   }

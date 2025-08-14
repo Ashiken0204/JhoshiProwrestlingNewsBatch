@@ -1373,7 +1373,7 @@ export class NewsScraper {
         return;
       }
       
-      const publishedAt = $item.find('.news-li__item__infom').first().text().trim();
+      const publishedAt = $item.find('.date-dot.news-li__item__date').first().text().trim();
       let detailUrl = $item.find('a').first().attr('href') || '';
       
       if (detailUrl && !detailUrl.startsWith('http')) {
