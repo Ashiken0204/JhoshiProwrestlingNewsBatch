@@ -1283,46 +1283,50 @@ export class NewsScraper {
     const items: any[] = [];
     console.log('JTOニュース抽出開始');
     
-    // .p-homeContent.l-parent.u-mt-40内のa要素を取得
-    $('.p-homeContent.l-parent.u-mt-40 a').each((index: number, element: any) => {
+    // .p-postList__item要素を取得
+    $('.p-postList__item').each((index: number, element: any) => {
       const $item = $(element);
-      const detailUrl = $item.attr('href') || '';
       
-      // 画像から情報を取得
-      const $img = $item.find('img').first();
-      let thumbnail = $img.attr('src') || '';
-      const altText = $img.attr('alt') || '';
+      // カテゴリーチェック - "スケジュール/チケット"以外を取得
+      const category = $item.find('.c-postThumb__cat.icon-folder').text().trim();
+      if (category === 'スケジュール/チケット') {
+        console.log(`JTO記事${index + 1}: スケジュール/チケットをスキップ`);
+        return; // この記事をスキップ
+      }
+      
+      // タイトルを取得
+      const title = $item.find('.p-postList__title').first().text().trim();
+      
+      // 詳細URLを取得
+      let detailUrl = $item.find('a').first().attr('href') || '';
+      if (detailUrl && !detailUrl.startsWith('http')) {
+        detailUrl = `https://prowrestlingjto.com${detailUrl}`;
+      }
+      
+      // 日付を取得
+      let publishedAt = $item.find('.c-postTimes__posted.icon-posted').first().text().trim();
+      publishedAt = publishedAt.replace(/\s+/g, ' ').trim();
+      
+      // サムネイル画像を取得
+      let thumbnail = $item.find('.c-postThumb__figure img').first().attr('src') || '';
+      if (thumbnail && !thumbnail.startsWith('http')) {
+        thumbnail = `https://prowrestlingjto.com${thumbnail}`;
+      }
       
       // base64画像の場合はデフォルト画像を使用
-      if (thumbnail && thumbnail.startsWith('data:image/gif;base64')) {
+      if (thumbnail && thumbnail.includes('data:image/gif;base64')) {
         thumbnail = '/images/default-thumbnail.jpg';
       }
       
-      // URLから日付を抽出
-      let publishedAt = '';
-      if (detailUrl) {
-        const dateMatch = detailUrl.match(/(\d{8})/);
-        if (dateMatch) {
-          const dateStr = dateMatch[1];
-          const year = dateStr.substring(0, 4);
-          const month = dateStr.substring(4, 6);
-          const day = dateStr.substring(6, 8);
-          publishedAt = `${year}-${month}-${day}`;
-        }
-      }
+      // 概要を取得
+      const summary = $item.find('.p-postList__excerpt').first().text().trim();
       
-      // タイトルはalt属性またはURLから生成
-      let title = altText;
-      if (!title && detailUrl) {
-        title = `JTO大会 ${publishedAt}`;
-      }
+      console.log(`JTO記事${index + 1}: カテゴリー="${category}", 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}", サムネイル="${thumbnail}"`);
       
-      console.log(`JTO記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}", サムネイル="${thumbnail}"`);
-      
-      if (detailUrl && !detailUrl.includes('javascript:') && !detailUrl.includes('#') && !detailUrl.includes('/page/') && !detailUrl.includes('/category/')) {
+      if (title && detailUrl && title.length > 3 && !detailUrl.includes('javascript:') && !detailUrl.includes('#')) {
         items.push({
-          title: title || `JTO大会 ${index + 1}`,
-          summary: '',
+          title,
+          summary,
           thumbnail: thumbnail || '/images/default-thumbnail.jpg',
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl

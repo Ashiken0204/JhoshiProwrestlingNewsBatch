@@ -191,11 +191,11 @@ export const ORGANIZATIONS: NewsOrganization[] = [
     baseUrl: 'https://prowrestlingjto.com',
     newsListUrl: 'https://prowrestlingjto.com/',
     selectors: {
-      newsItems: '.p-homeContent.l-parent.u-mt-40 a',
-      title: 'img',
-      summary: 'img',
-      thumbnail: 'img',
-      publishedAt: 'img',
+      newsItems: '.p-postList__item',
+      title: '.p-postList__title',
+      summary: '.p-postList__excerpt',
+      thumbnail: '.c-postThumb__figure img',
+      publishedAt: '.c-postTimes__posted.icon-posted',
       detailUrl: 'a'
     }
   }
