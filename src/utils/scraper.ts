@@ -247,6 +247,9 @@ export class NewsScraper {
       case 'oz_academy':
         return this.extractOzAcademyNews($);
       
+      // case 'seadlinnng':
+      //   return this.extractSeadlinnngNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -820,6 +823,50 @@ export class NewsScraper {
     });
     
     console.log(`OZアカデミー抽出結果: ${items.length}件`);
+    
+    return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractSeadlinnngNews($: any): any[] {
+    const items: any[] = [];
+    
+    console.log('SEAdLINNNGニュース抽出開始');
+    
+    // ニュース記事要素から抽出
+    $('.news-item, article, .post').each((index: number, element: any) => {
+      const $item = $(element);
+      
+      // タイトルの抽出
+      const title = $item.find('h2 a, h3 a, .title a').first().text().trim();
+      
+      // URLの抽出
+      const detailUrl = $item.find('h2 a, h3 a, .title a').first().attr('href') || '';
+      
+      // 日付の抽出
+      const publishedAt = $item.find('.date, .published, time').first().text().trim();
+      
+      // 概要の抽出
+      const summary = $item.find('.excerpt, .summary, p').first().text().trim();
+      
+      console.log(`SEAdLINNNG記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && detailUrl && 
+          title.length > 3 && 
+          !detailUrl.includes('javascript:') && 
+          !detailUrl.includes('#')) {
+        
+        items.push({
+          title,
+          summary,
+          thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`SEAdLINNNG抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }

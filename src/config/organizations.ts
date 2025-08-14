@@ -113,5 +113,20 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.p-news__post--date',
       detailUrl: 'a.p-news__post--link'
     }
-  }
+  },
+  // SEAdLINNNGは現在Vue.js SPAで動的コンテンツのため、一時的に無効化
+  // {
+  //   name: 'seadlinnng',
+  //   displayName: 'SEAdLINNNG',
+  //   baseUrl: 'https://seadlinnng.com',
+  //   newsListUrl: 'https://seadlinnng.com/news',
+  //   selectors: {
+  //     newsItems: '.news-item, article, .post',
+  //     title: 'h2 a, h3 a, .title a',
+  //     summary: '.excerpt, .summary, p',
+  //     thumbnail: 'img',
+  //     publishedAt: '.date, .published, time',
+  //     detailUrl: 'h2 a, h3 a, .title a'
+  //   }
+  // }
 ];
