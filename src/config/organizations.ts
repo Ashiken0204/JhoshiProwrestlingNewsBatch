@@ -168,7 +168,7 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       summary: '.excerpt, .summary, p',
       thumbnail: 'img',
       publishedAt: 'time',
-      detailUrl: '[data-ha-element-link]'
+      detailUrl: 'section[data-ha-element-link]'
     }
   },
   {

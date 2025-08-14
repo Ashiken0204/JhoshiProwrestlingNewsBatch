@@ -1194,13 +1194,18 @@ export class NewsScraper {
         }
       }
       
-      // 詳細URLをdata-ha-element-link属性から取得
-      let detailUrl = $item.attr('data-ha-element-link') || '';
-      if (!detailUrl) {
-        // 親要素からも探す
-        const $parent = $item.closest('.elementor-widget-wrap');
-        if ($parent.length > 0) {
-          detailUrl = $parent.find('[data-ha-element-link]').first().attr('data-ha-element-link') || '';
+      // 詳細URLをsectionのdata-ha-element-link属性から取得
+      let detailUrl = '';
+      const $section = $item.closest('section');
+      if ($section.length > 0) {
+        const dataHaElementLink = $section.attr('data-ha-element-link');
+        if (dataHaElementLink) {
+          try {
+            const linkData = JSON.parse(dataHaElementLink);
+            detailUrl = linkData.url || '';
+          } catch (e) {
+            console.log(`PURE-J JSON解析エラー: ${dataHaElementLink}`);
+          }
         }
       }
       
