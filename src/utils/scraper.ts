@@ -1070,7 +1070,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: '',
-          thumbnail: this.getRandomDefaultThumbnail(), // ランダムなデフォルト画像を使用
+          thumbnail: '', // サムネイル画像なし
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1168,7 +1168,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: this.getRandomDefaultThumbnail(), // ランダムなデフォルト画像を使用
+          thumbnail: '', // サムネイル画像なし
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1238,7 +1238,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: '',
-          thumbnail: this.getRandomDefaultThumbnail(), // ランダムなデフォルト画像を使用
+          thumbnail: '', // サムネイル画像なし
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1398,7 +1398,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: title,
-          thumbnail: this.getRandomDefaultThumbnail(),
+          thumbnail: '', // サムネイル画像なし
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
