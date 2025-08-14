@@ -16,10 +16,10 @@ export class NewsScraper {
   // ランダムなデフォルト画像を選択する関数
   private getRandomDefaultThumbnail(): string {
     const defaultImages = [
-      'https://jhoshi-prowrestling-news.vercel.app/images/default-thumbnail1.jpg',
-      'https://jhoshi-prowrestling-news.vercel.app/images/default-thumbnail2.jpg',
-      'https://jhoshi-prowrestling-news.vercel.app/images/default-thumbnail3.jpg',
-      'https://jhoshi-prowrestling-news.vercel.app/images/default-thumbnail4.jpg'
+      '/images/default-thumbnail1.jpg',
+      '/images/default-thumbnail2.jpg',
+      '/images/default-thumbnail3.jpg',
+      '/images/default-thumbnail4.jpg'
     ];
     const randomIndex = Math.floor(Math.random() * defaultImages.length);
     return defaultImages[randomIndex];
