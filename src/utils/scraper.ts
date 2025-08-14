@@ -642,13 +642,13 @@ export class NewsScraper {
                          !title.match(/^(HOME|NEWS|SCHEDULE|CONTACT|ABOUT|トップ|ニュース|スケジュール|結果|選手紹介|チケット|YouTube|Instagram|X|Twitter)$/i);
       
       if (isValidNews) {
-        items.push({
-          title: title.replace(/\s+/g, ' ').trim(),
-          summary: summary || '',
-          thumbnail: thumbnail || '',
-          publishedAt: publishedAt || new Date().toISOString(),
-          detailUrl: fullDetailUrl
-        });
+                  items.push({
+            title: title.replace(/\s+/g, ' ').trim(),
+            summary: summary || '',
+            thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
+            publishedAt: publishedAt || new Date().toISOString(),
+            detailUrl: fullDetailUrl
+          });
       }
     });
     
@@ -680,7 +680,7 @@ export class NewsScraper {
           items.push({
             title: title.replace(/\s+/g, ' ').trim(),
             summary: '',
-            thumbnail: $item.find('img').first().attr('src') || '',
+            thumbnail: $item.find('img').first().attr('src') || this.getRandomDefaultThumbnail(),
             publishedAt: publishedAt || new Date().toISOString(),
             detailUrl: fullDetailUrl
           });
@@ -768,7 +768,7 @@ export class NewsScraper {
         items.push({
           title: title.replace(/\s+/g, ' ').trim(), // 余分な空白を除去
           summary: '', // 公式サイトでは概要は別途取得が必要
-          thumbnail,
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt,
           detailUrl
         });
@@ -803,7 +803,7 @@ export class NewsScraper {
           items.push({
             title: title.replace(/\s+/g, ' ').trim(),
             summary: '',
-            thumbnail: '',
+            thumbnail: this.getRandomDefaultThumbnail(),
             publishedAt,
             detailUrl
           });
@@ -863,7 +863,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: '',
-          thumbnail,
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt,
           detailUrl
         });
@@ -914,7 +914,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail,
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt,
           detailUrl
         });
@@ -962,7 +962,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail,
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt: publishedAt || new Date().toISOString().split('T')[0], // 日付がない場合は今日の日付を使用
           detailUrl
         });
@@ -1010,7 +1010,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail,
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
