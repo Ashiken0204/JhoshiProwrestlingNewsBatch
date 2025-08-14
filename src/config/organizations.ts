@@ -99,5 +99,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.date-meta',
       detailUrl: '.entry-title a'
     }
+  },
+  {
+    name: 'oz_academy',
+    displayName: 'OZアカデミー',
+    baseUrl: 'https://oz-academy.com',
+    newsListUrl: 'https://oz-academy.com/all',
+    selectors: {
+      newsItems: 'article.p-news__post',
+      title: '.p-news__post--title',
+      summary: '.p-news__post--text',
+      thumbnail: '.p-news__post--image img',
+      publishedAt: '.p-news__post--date',
+      detailUrl: 'a.p-news__post--link'
+    }
   }
 ];

@@ -244,6 +244,9 @@ export class NewsScraper {
       case 'diana':
         return this.extractDianaNews($);
       
+      case 'oz_academy':
+        return this.extractOzAcademyNews($);
+      
       default:
         return this.extractGenericNews($, organization);
     }
@@ -769,6 +772,54 @@ export class NewsScraper {
     });
     
     console.log(`ディアナ抽出結果: ${items.length}件`);
+    
+    return items.slice(0, 10); // 最大10件に制限
+  }
+
+  private extractOzAcademyNews($: any): any[] {
+    const items: any[] = [];
+    
+    console.log('OZアカデミーニュース抽出開始');
+    
+    // article.p-news__post要素から抽出
+    $('article.p-news__post').each((index: number, element: any) => {
+      const $item = $(element);
+      
+      // タイトルの抽出
+      const title = $item.find('.p-news__post--title').first().text().trim();
+      
+      // URLの抽出
+      const detailUrl = $item.find('a.p-news__post--link').first().attr('href') || '';
+      
+      // 日付の抽出
+      const publishedAt = $item.find('.p-news__post--date').first().text().trim();
+      
+      // サムネイルの抽出
+      const thumbnail = $item.find('.p-news__post--image img').first().attr('data-src') || 
+                       $item.find('.p-news__post--image img').first().attr('src') || '';
+      
+      // 概要の抽出
+      const summary = $item.find('.p-news__post--text').first().text().trim();
+      
+      console.log(`OZアカデミー記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}"`);
+      
+      // 有効なデータの場合のみ追加
+      if (title && detailUrl && 
+          title.length > 3 && 
+          !detailUrl.includes('javascript:') && 
+          !detailUrl.includes('#')) {
+        
+        items.push({
+          title,
+          summary,
+          thumbnail,
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`OZアカデミー抽出結果: ${items.length}件`);
     
     return items.slice(0, 10); // 最大10件に制限
   }
