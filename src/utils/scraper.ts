@@ -13,6 +13,18 @@ export class NewsScraper {
   private browser: Browser | null = null;
   private seleniumDriver: WebDriver | null = null;
 
+  // ランダムなデフォルト画像を選択する関数
+  private getRandomDefaultThumbnail(): string {
+    const defaultImages = [
+      '/images/default-thumbnail1.jpg',
+      '/images/default-thumbnail2.jpg',
+      '/images/default-thumbnail3.jpg',
+      '/images/default-thumbnail4.jpg'
+    ];
+    const randomIndex = Math.floor(Math.random() * defaultImages.length);
+    return defaultImages[randomIndex];
+  }
+
   async initialize(): Promise<void> {
     try {
       console.log('Puppeteerを初期化中... (Linux Azure Functions環境)');
@@ -1058,7 +1070,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: '',
-          thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
+          thumbnail: this.getRandomDefaultThumbnail(), // ランダムなデフォルト画像を使用
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1110,7 +1122,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || '/images/default-thumbnail.jpg',
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1156,7 +1168,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
+          thumbnail: this.getRandomDefaultThumbnail(), // ランダムなデフォルト画像を使用
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1226,7 +1238,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: '',
-          thumbnail: '/images/default-thumbnail.jpg', // デフォルト画像を使用
+          thumbnail: this.getRandomDefaultThumbnail(), // ランダムなデフォルト画像を使用
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1270,7 +1282,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || '/images/default-thumbnail.jpg',
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1333,7 +1345,7 @@ export class NewsScraper {
         
         // それでも見つからない場合はデフォルト画像を使用
         if (!thumbnail || thumbnail.includes('data:image/gif;base64')) {
-          thumbnail = '/images/default-thumbnail.jpg';
+          thumbnail = this.getRandomDefaultThumbnail();
         }
       }
       
@@ -1346,7 +1358,7 @@ export class NewsScraper {
         items.push({
           title,
           summary,
-          thumbnail: thumbnail || '/images/default-thumbnail.jpg',
+          thumbnail: thumbnail || this.getRandomDefaultThumbnail(),
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
@@ -1386,7 +1398,7 @@ export class NewsScraper {
         items.push({
           title,
           summary: title,
-          thumbnail: '/images/default-thumbnail.jpg',
+          thumbnail: this.getRandomDefaultThumbnail(),
           publishedAt: publishedAt || new Date().toISOString().split('T')[0],
           detailUrl
         });
