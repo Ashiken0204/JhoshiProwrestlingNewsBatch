@@ -1307,15 +1307,32 @@ export class NewsScraper {
       let publishedAt = $item.find('.c-postTimes__posted.icon-posted').first().text().trim();
       publishedAt = publishedAt.replace(/\s+/g, ' ').trim();
       
-      // サムネイル画像を取得
-      let thumbnail = $item.find('.c-postThumb__figure img').first().attr('src') || '';
+      // サムネイル画像を取得（遅延読み込み対応）
+      let thumbnail = '';
+      
+      // まずdata-src属性をチェック（遅延読み込み）
+      const $img = $item.find('.c-postThumb__figure img').first();
+      thumbnail = $img.attr('data-src') || $img.attr('src') || '';
+      
+      // 相対URLの場合は絶対URLに変換
       if (thumbnail && !thumbnail.startsWith('http')) {
         thumbnail = `https://prowrestlingjto.com${thumbnail}`;
       }
       
-      // base64画像の場合はデフォルト画像を使用
+      // base64画像の場合は、swiper-slide内の実際の画像を探す
       if (thumbnail && thumbnail.includes('data:image/gif;base64')) {
-        thumbnail = '/images/default-thumbnail.jpg';
+        const $swiperSlide = $item.closest('.swiper-slide');
+        if ($swiperSlide.length > 0) {
+          const $actualImg = $swiperSlide.find('img[src*="wp-content"]').first();
+          if ($actualImg.length > 0) {
+            thumbnail = $actualImg.attr('src') || '';
+          }
+        }
+        
+        // それでも見つからない場合はデフォルト画像を使用
+        if (!thumbnail || thumbnail.includes('data:image/gif;base64')) {
+          thumbnail = '/images/default-thumbnail.jpg';
+        }
       }
       
       // 概要を取得
