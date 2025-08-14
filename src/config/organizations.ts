@@ -184,5 +184,19 @@ export const ORGANIZATIONS: NewsOrganization[] = [
       publishedAt: '.entry-date',
       detailUrl: 'article'
     }
+  },
+  {
+    name: 'jto',
+    displayName: 'JUST TAP OUT',
+    baseUrl: 'https://prowrestlingjto.com',
+    newsListUrl: 'https://prowrestlingjto.com/',
+    selectors: {
+      newsItems: '.p-homeContent.l-parent.u-mt-40 a',
+      title: 'img',
+      summary: 'img',
+      thumbnail: 'img',
+      publishedAt: 'img',
+      detailUrl: 'a'
+    }
   }
 ];

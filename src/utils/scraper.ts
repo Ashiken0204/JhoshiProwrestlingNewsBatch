@@ -428,6 +428,8 @@ export class NewsScraper {
           return this.extractPurejNews($);
         case 'gokigenpro':
           return this.extractGokigenproNews($);
+        case 'jto':
+          return this.extractJtoNews($);
       
       default:
         return this.extractGenericNews($, organization);
@@ -1274,6 +1276,61 @@ export class NewsScraper {
     });
     
     console.log(`ゴキゲンプロレス抽出結果: ${items.length}件`);
+    return items.slice(0, 10);
+  }
+
+  private extractJtoNews($: any): any[] {
+    const items: any[] = [];
+    console.log('JTOニュース抽出開始');
+    
+    // .p-homeContent.l-parent.u-mt-40内のa要素を取得
+    $('.p-homeContent.l-parent.u-mt-40 a').each((index: number, element: any) => {
+      const $item = $(element);
+      const detailUrl = $item.attr('href') || '';
+      
+      // 画像から情報を取得
+      const $img = $item.find('img').first();
+      let thumbnail = $img.attr('src') || '';
+      const altText = $img.attr('alt') || '';
+      
+      // base64画像の場合はデフォルト画像を使用
+      if (thumbnail && thumbnail.startsWith('data:image/gif;base64')) {
+        thumbnail = '/images/default-thumbnail.jpg';
+      }
+      
+      // URLから日付を抽出
+      let publishedAt = '';
+      if (detailUrl) {
+        const dateMatch = detailUrl.match(/(\d{8})/);
+        if (dateMatch) {
+          const dateStr = dateMatch[1];
+          const year = dateStr.substring(0, 4);
+          const month = dateStr.substring(4, 6);
+          const day = dateStr.substring(6, 8);
+          publishedAt = `${year}-${month}-${day}`;
+        }
+      }
+      
+      // タイトルはalt属性またはURLから生成
+      let title = altText;
+      if (!title && detailUrl) {
+        title = `JTO大会 ${publishedAt}`;
+      }
+      
+      console.log(`JTO記事${index + 1}: 日付="${publishedAt}", タイトル="${title}", URL="${detailUrl}", サムネイル="${thumbnail}"`);
+      
+      if (detailUrl && !detailUrl.includes('javascript:') && !detailUrl.includes('#') && !detailUrl.includes('/page/') && !detailUrl.includes('/category/')) {
+        items.push({
+          title: title || `JTO大会 ${index + 1}`,
+          summary: '',
+          thumbnail: thumbnail || '/images/default-thumbnail.jpg',
+          publishedAt: publishedAt || new Date().toISOString().split('T')[0],
+          detailUrl
+        });
+      }
+    });
+    
+    console.log(`JTO抽出結果: ${items.length}件`);
     return items.slice(0, 10);
   }
 
